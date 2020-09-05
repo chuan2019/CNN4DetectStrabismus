@@ -24,7 +24,7 @@ logfile_name = 'model_' + '-'.join([str(dt.date.today().year),
                                     str(dt.date.today().day)]) + '.log'
 
 logging.basicConfig(filename=logfile_name,
-                    filemode='w',
+                    #filemode='w',
                     format='%(asctime)s  [%(levelname)s:%(name)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.DEBUG)
@@ -40,11 +40,9 @@ class PreProcess(object):
 
         def __init__(self, left: int=0, top: int=0, right: int=0, bottom: int=0, debug: bool=False):
             if right < left:
-                logging.error(f'Coordinate Error: right {right} is less than left {left}!')
-                raise ValueError(f'Coordinate Error: right {right} is less than left {left}!')
+                raise Exception(f'Coordinate Error: right {right} is less than left {left}!')
             if bottom < top:
-                logging.error(f'Coordinate Error: bottom {bottom} is less than top {top}!')
-                raise ValueError(f'Coordinate Error: bottom {bottom} is less than top {top}!')
+                raise Exception(f'Coordinate Error: bottom {bottom} is less than top {top}!')
             self.debug  = debug
             self.left   = left
             self.top    = top
@@ -81,8 +79,8 @@ class PreProcess(object):
             
         def union(self, left: int, top: int, right: int, bottom: int) -> None:
             if self.debug:
-                logging.debug(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
-                logging.debug(f'new region: ({left}, {top}, {right}, {bottom})')
+                print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
+                print(f'new region: ({left}, {top}, {right}, {bottom})')
             if self.left > left:
                 self.left = left
             if self.top > top:
@@ -92,7 +90,7 @@ class PreProcess(object):
             if self.bottom < bottom:
                 self.bottom = bottom
             if self.debug:
-                logging.debug(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
+                print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
         
         def contains(self, region) -> bool:
             return self.left   <= region.left  and \
@@ -115,7 +113,6 @@ class PreProcess(object):
 
     def load_image(self, input_file: str) -> ShapeType:
         if not os.path.isfile(input_file):
-            logging.error(f'input file "{input_file}" is not found!')
             raise Exception(f'Error: input file "{input_file}" is not found!')
         self.file = input_file
         try:
@@ -123,7 +120,6 @@ class PreProcess(object):
             self.rgb_image = cv2.cvtColor(self.raw_image, cv2.COLOR_BGR2RGB)
             self.gry_image = self.rgb_image[:,:,0]
         except:
-            logging.error(f'loading image {input_file} failed!')
             raise Exception(f'Error: loading image {input_file} failed!')
         if self.debug:
             plt.subplot(3,1,1)
@@ -205,7 +201,6 @@ class PreProcess(object):
 
     def locate_eye_region(self) -> bool:
         if self.gry_image is None:
-            logging.error('image is None!')
             raise Exception('Error: image is None!')
         eyes = self.eye_cascade.detectMultiScale(self.gry_image)
         if len(eyes) == 0:
@@ -247,17 +242,21 @@ def test_preprocessing():
     args = parser.parse_args()
     input_file = args.image_file
     prep = PreProcess(True)
-    shape = prep.load_image(input_file)
-    print(f'loaded image from file {input_file}, image shape: {shape}.')
-    prep.preprocess()
-    rgb_cropped = prep.get_processed_image('rgb')
-    gry_cropped = prep.get_processed_image('gray')
-    fig = plt.figure(figsize=(5, 5))
-    ax1 = fig.add_subplot(2, 1, 1)
-    ax1.imshow(rgb_cropped)
-    ax2 = fig.add_subplot(2, 1, 2)
-    ax2.imshow(gry_cropped, cmap='gray')
-    plt.show()
+    try:
+        shape = prep.load_image(input_file)
+        print(f'loaded image from file {input_file}, image shape: {shape}.')
+        prep.preprocess()
+        rgb_cropped = prep.get_processed_image('rgb')
+        gry_cropped = prep.get_processed_image('gray')
+        fig = plt.figure(figsize=(5, 5))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax1.imshow(rgb_cropped)
+        ax2 = fig.add_subplot(2, 1, 2)
+        ax2.imshow(gry_cropped, cmap='gray')
+        plt.show()
+    except Exception as err:
+        print(str(err))
+        logging.exception(str(err))
 
 class StrabismusDetector(object):
 
@@ -272,10 +271,8 @@ class StrabismusDetector(object):
                      debug:        bool=False
                      ):
             if not os.path.isdir(training_set):
-                #logging.critical(f'{training_set} is not a directory!')
                 raise Exception(f'Error: {training_set} is not a directory!')
             if not os.path.isdir(testing_set):
-                #logging.critical(f'{testing_set} is not a directory!')
                 raise Exception(f'Error: {testing_set} is not a directory!')
             self.training_set     = training_set
             self.testing_set      = testing_set
@@ -297,12 +294,10 @@ class StrabismusDetector(object):
             try:
                 self.images_train = self.get_image_generator(training_set)
             except:
-                #logging.critical(f'preparing data set from {training_set} for training failed!')
                 raise Exception(f'Error: preparing data set from {training_set} for training failed!')
             try:
                 self.images_test  = self.get_image_generator(testing_set)
             except:
-                #logging.critical(f'preparing data set from {testing_set} for testing failed!')
                 raise Exception(f'Error: preparing data set from {testing_set} for testing failed!')
             try:
                 self._train_()
@@ -333,7 +328,6 @@ class StrabismusDetector(object):
 
         def _train_(self) -> None:
             if self.images_train is None:
-                #logging.error('images for training are not loaded yet!')
                 raise Exception('Error: images for training are not loaded yet!')
             try:
                 self.training_result = self.model['model'].fit_generator(self.images_train,
@@ -342,7 +336,6 @@ class StrabismusDetector(object):
                                             validation_data=self.images_test,
                                             validation_steps=self.validation_steps)
             except:
-                #logging.error('training model failed!')
                 raise Exception('Error: training model failed!')
 
     class ModelFactory(object):
@@ -429,10 +422,8 @@ class StrabismusDetector(object):
             self.model = {'name': model_file, 'trained': True, 'model': model}
         except:
             if os.path.isfile(model_file):
-                #logging.error(f'model file {model_file} is not found!')
                 raise Exception(f'Error: model file {model_file} is not found!')
             else:
-                #logging.error(f'loading model {model_file} failed!')
                 raise Exception(f'Error: loading model {model_file} failed!')
         return True
 
@@ -508,8 +499,8 @@ def test_model_prediction() -> None:
     detector.isStrabismus(image_file, not raw)
 
 if __name__ == '__main__':
-    #test_preprocessing()
-    test_model_prediction()
+    test_preprocessing()
+    #test_model_prediction()
 
 
 
