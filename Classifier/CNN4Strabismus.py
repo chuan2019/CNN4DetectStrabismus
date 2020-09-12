@@ -1,17 +1,41 @@
 #!/usr/bin/python
 #######################################################################
-# Project: Detecting Strabismus with Convolutional Neural Networks
-# File   : CNN4Strabismus.py
-# Purpose: Implementation of CNN related features as listed below
-#        :    1. Raw Image Preprocessing
-#        :    2. Creating, Training and Saving a Selected CNN Model, for
-#        :       this feature, training/testing data sets are required
-#        :    3. Diagnosing a subject by classifying the input picture
-#        :       of the subject
-# Author : Chuan Zhang
-# Email  : chuan.zhang2015@gmail.com
-# Date   : Feb. 2020 - Aug. 2020
-#######################################################################
+#    Project: Detecting Strabismus with Convolutional Neural Networks
+#
+#    Copyright (C) 2020  Chuan Zhang, chuan.zhang2015@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##########################################################################
+"""
+ File    : CNN4Strabismus.py
+
+ Purpose : Implementation of CNN related features as listed below
+
+        1. Raw Image Preprocessing
+        2. Creating, Training, Saving and Loading a Selected CNN
+           Model, for this feature, training/testing data sets
+           are required
+        3. Diagnosing a subject by classifying the input picture
+           of the subject
+
+"""
+header_text  = 'CNN4Strabismus Copyright (C) 2020 Chuan Zhang\n\n'
+header_text += 'This program comes with ABSOLUTELY NO WARRANTY; \n'
+header_text += 'This is free software, and you are welcome to redistribute it\n'
+header_text += 'under certain conditions\n\n'
+print(header_text)
 import os, cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,6 +64,12 @@ ModelType = NewType('ModelType', {'name':str, 'trained': bool, 'model': Sequenti
 ImageType = NewType('ImageType', np.ndarray)
 ShapeType = NewType('ShapeType', Union[Tuple[int, int, int], Tuple[int, int]])
 ModelListType = NewType('ModelListType', List[str])
+
+# default shape:
+#   + target shape for preprocessing
+#   + input  shape for detecting
+DEFAULT_HIGHT = 100
+DEFAULT_WIDTH = 400
 
 class PreProcess(object):
 
@@ -105,7 +135,7 @@ class PreProcess(object):
                    self.top    <= region.top   and \
                    self.bottom >= region.bottom
 
-    def __init__(self, debug: bool=False):
+    def __init__(self, target_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3), debug: bool=False):
         self.debug = debug
         self.eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
         self.raw_image = None
@@ -115,8 +145,8 @@ class PreProcess(object):
         self.raw_image_region  = None
         self.rgb_image_cropped = None
         self.gry_image_cropped = None
-        self.WIDTH  = 350
-        self.HEIGHT = 100
+        self.HEIGHT = target_shape[0]
+        self.WIDTH  = target_shape[1]
 
     def load_image(self, input_file: str) -> ShapeType:
         if not os.path.isfile(input_file):
@@ -251,7 +281,7 @@ class StrabismusDetector(object):
                      training_set: str,
                      testing_set:  str,
                      model:        ModelType,
-                     input_shape:  tuple=(100, 400, 3),
+                     input_shape:  Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3),
                      batch_size:   int=16,
                      debug:        bool=False
                      ):
@@ -327,7 +357,7 @@ class StrabismusDetector(object):
 
         def __init__(self, model_type:  str='LeNet',
                            model_name:  str=None,
-                           input_shape: Tuple[int]=(100, 400, 3),
+                           input_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3),
                            debug:       bool=False):
             if len(input_shape) != 3 or input_shape[2] != 3:
                 raise Exception(f'Error: input shape, \"{input_shape}\", is not supported!')
@@ -507,7 +537,7 @@ class StrabismusDetector(object):
     def isStrabismus(self, input_image: str, processed: bool=False) -> bool:
         if self.model is None:
             raise Exception(f'Error: model is not loaded or created yet!')
-        prep = PreProcess(self.debug)
+        prep = PreProcess(debug=self.debug)
         if not processed:
             prep.load_image(input_image)
             prep.preprocess()
@@ -541,10 +571,10 @@ class StrabismusDetector(object):
 def main():
     '''
     sample command line:
-    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/raw/patient/eso_008.jpg --raw
-    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/raw/healthy/healthy_001.png --raw
-    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/test/patient/1609_r.jpg
-    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/test/healthy/806.jpg
+    $ python CNN4Strabismus.py -m model_03-31-20 -i data/raw/patient/eso_008.jpg --raw
+    $ python CNN4Strabismus.py -m model_03-31-20 -i data/raw/healthy/healthy_001.png --raw
+    $ python CNN4Strabismus.py -m model_03-31-20 -i data/test/patient/1609_r.jpg
+    $ python CNN4Strabismus.py -m model_03-31-20 -i data/test/healthy/806.jpg
     '''
     parser = argparse.ArgumentParser(description='Model Prediction')
     parser.add_argument('-m', '--model_file', type=str, help='file name of the model to be loaded')
