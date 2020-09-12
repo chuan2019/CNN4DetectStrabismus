@@ -31,10 +31,8 @@
            of the subject
 
 """
-header_text  = 'CNN4Strabismus Copyright (C) 2020 Chuan Zhang\n\n'
-header_text += 'This program comes with ABSOLUTELY NO WARRANTY; \n'
-header_text += 'This is free software, and you are welcome to redistribute it\n'
-header_text += 'under certain conditions\n\n'
+header_text  = '\n\tCNN4Strabismus\n\n'
+header_text += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
 print(header_text)
 import os, cv2
 import numpy as np
