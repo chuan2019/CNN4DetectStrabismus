@@ -6,6 +6,7 @@
 # Author : Chuan Zhang
 # Email  : chuan.zhang2015@gmail.com
 # Date   : Sep. 2020
+# Example: $ python -m unittest -v CNN4StrabismusUTs.py
 #######################################################################
 
 from CNN4Strabismus import *
@@ -106,14 +107,14 @@ class ModelPredictionTestSuite(unittest.TestCase):
             for model_name in self.models:
                 print(f'\ntest loading model: \"{model_name}\" ...')
                 detector = StrabismusDetector(model_name=model_name, debug=False)
-                self.assertNotEqual(detector.model, None)
+                self.assertIsNot(detector.model, None)
                 self.assertTrue(detector.model['trained'])
                 self.assertNotEqual(len(detector.model['name']), 0)
                 self.assertEqual(detector.model['name'], model_name)
-                self.assertNotEqual(detector.model['model'], None)
+                self.assertIsNot(detector.model['model'], None)
                 print('PASS!')
             detector = StrabismusDetector(model_name='test_lenet')
-            self.assertTrue(detector.model is None)
+            self.assertIs(detector.model, None)
         except Exception as err:
             print(str(err))
             failed = True
@@ -125,7 +126,7 @@ class ModelPredictionTestSuite(unittest.TestCase):
             self.assertTrue(res)
             self.assertEqual(detector.model['name'], 'test_lenet')
             self.assertFalse(detector.model['trained'])
-            self.assertNotEqual(detector.model['model'], None)
+            self.assertIsNot(detector.model['model'], None)
         except Exception as err:
             print(str(err))
             failed = True
