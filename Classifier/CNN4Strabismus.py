@@ -1,6 +1,13 @@
 #!/usr/bin/python
 #######################################################################
 # Project: Detecting Strabismus with Convolutional Neural Networks
+# File   : CNN4Strabismus.py
+# Purpose: Implementation of CNN related features as listed below
+#        :    1. Raw Image Preprocessing
+#        :    2. Creating, Training and Saving a Selected CNN Model, for
+#        :       this feature, training/testing data sets are required
+#        :    3. Diagnosing a subject by classifying the input picture
+#        :       of the subject
 # Author : Chuan Zhang
 # Email  : chuan.zhang2015@gmail.com
 # Date   : Feb. 2020 - Aug. 2020
@@ -15,7 +22,7 @@ from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout, Activati
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 import logging
 import datetime as dt
-from typing import NewType, Tuple, Union, List
+from typing import NewType, Tuple, Union, List, Any
 from abc import ABC, abstractmethod
 import asyncio
 
@@ -92,7 +99,7 @@ class PreProcess(object):
             if self.debug:
                 print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
         
-        def contains(self, region) -> bool:
+        def contains(self, region: object) -> bool:
             return self.left   <= region.left  and \
                    self.right  >= region.right and \
                    self.top    <= region.top   and \
@@ -236,28 +243,6 @@ class PreProcess(object):
             h, w, c = self.rgb_image_cropped.shape
             print(f'dim after resize: {(h, w)}')
 
-def test_preprocessing():
-    parser = argparse.ArgumentParser(description='Pre-processing raw image')
-    parser.add_argument('-f', '--image_file', type=str, help='input image file')
-    args = parser.parse_args()
-    input_file = args.image_file
-    prep = PreProcess(True)
-    try:
-        shape = prep.load_image(input_file)
-        print(f'loaded image from file {input_file}, image shape: {shape}.')
-        prep.preprocess()
-        rgb_cropped = prep.get_processed_image('rgb')
-        gry_cropped = prep.get_processed_image('gray')
-        fig = plt.figure(figsize=(5, 5))
-        ax1 = fig.add_subplot(2, 1, 1)
-        ax1.imshow(rgb_cropped)
-        ax2 = fig.add_subplot(2, 1, 2)
-        ax2.imshow(gry_cropped, cmap='gray')
-        plt.show()
-    except Exception as err:
-        print(str(err))
-        logging.exception(str(err))
-
 class StrabismusDetector(object):
 
     class DetectorTraining(object):
@@ -340,14 +325,33 @@ class StrabismusDetector(object):
 
     class ModelFactory(object):
 
-        def __init__(self, model_name: str, model_type: str='LeNet', debug: bool=False):
-            # Supported model names: ['LeNet', 'LeNet1']
+        def __init__(self, model_type:  str='LeNet',
+                           model_name:  str=None,
+                           input_shape: Tuple[int]=(100, 400, 3),
+                           debug:       bool=False):
+            if len(input_shape) != 3 or input_shape[2] != 3:
+                raise Exception(f'Error: input shape, \"{input_shape}\", is not supported!')
+            for num in input_shape:
+                if num <= 0:
+                    raise Exception(f'Error: entries of \"{input_shape}\" must positive integers!')
+            self.input_shape = input_shape
+            self.supported_model_types = ['LeNet', 'LeNet1']
+            if model_name is None:
+                model_name = model_type + '_' + str(dt.date.today().year)
+                if dt.date.today().month < 10:
+                    model_name += '-0' + str(dt.date.today().month)
+                else:
+                    model_name += '-' + str(dt.date.today().month)
+                if dt.date.today().day < 10:
+                    model_name += '-0' + str(dt.date.today().day)
+                else:
+                    model_name += '-' + str(dt.date.today().day)
             if model_type == 'LeNet':
                 self.model = self.create_LeNet(model_name)
             elif model_type == 'LeNet1':
                 self.model = self.create_LeNet1(model_name)
             else:
-                raise Exception(f'Error: {model_type} is not a supported model type!')
+                raise Exception(f'Error: model type, \"{model_type}\", is not supported!')
 
         def get_model(self) -> ModelType:
             return self.model
@@ -355,7 +359,7 @@ class StrabismusDetector(object):
         def create_LeNet(self, name: str) -> ModelType:
             LeNet = Sequential()
             # 1st Convolution Layer
-            LeNet.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=input_size, activation='relu'))
+            LeNet.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=self.input_shape, activation='relu'))
             # 1st Max Pooling (Subsampling) Layer
             LeNet.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
@@ -376,7 +380,7 @@ class StrabismusDetector(object):
         def create_LeNet1(self, name: str) -> ModelType:
             LeNet1 = Sequential()
             # 1st Convolution Layer
-            LeNet1.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=input_size, activation='relu'))
+            LeNet1.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=self.input_shape, activation='relu'))
             # 1st Pooling Layer
             LeNet1.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
@@ -398,15 +402,16 @@ class StrabismusDetector(object):
                           metrics=['accuracy'])
             return {'name': name, 'trained': False, 'model': LeNet1}
 
-    def __init__(self, model_file: str=None, debug: bool=False) -> None:
-        if model_file is None:
+    def __init__(self, model_name: str=None, debug: bool=False) -> None:
+        self.debug = debug
+        if model_name is None:
             self.model = None
         else:
             try:
-                self._load_model_(model_file)
-            except:
+                self._load_model_(model_name)
+            except Exception as err:
+                print(str(err))
                 self.model = None
-        self.debug   = debug
 
     def get_model_names(self) -> ModelListType:
         model_files = []
@@ -414,41 +419,88 @@ class StrabismusDetector(object):
             model_files.extend(filename)
         return model_files
 
-    def _load_model_(self, model_file: str) -> bool:
+    def _load_model_(self, model_name: str) -> bool:
+        model_file = 'models/' + model_name + '.h5'
+        if self.debug:
+            print(f'loading model file {model_file} ...')
+        else:
+            logging.info(f'loading model file {model_file} ...')
         try:
-            if 'models/' not in model_file:
-                model_file = 'models/' + model_file
             model = load_model(model_file)
-            self.model = {'name': model_file, 'trained': True, 'model': model}
-        except:
-            if os.path.isfile(model_file):
-                raise Exception(f'Error: model file {model_file} is not found!')
+            self.model = {'name': model_name, 'trained': True, 'model': model}
+        except Exception as err:
+            self.model = None
+            if self.debug:
+                print(str(err))
+                print(f'Error: loading model \"{model_name}\" failed!')
             else:
-                raise Exception(f'Error: loading model {model_file} failed!')
+                logging.error(str(err))
+                logging.error(f'Error: loading model \"{model_name}\" failed!')
+            return False
+        if self.debug:
+            print(f'model file {model_file} is loaded!')
+        else:
+            logging.info(f'model file {model_file} is loaded!')
         return True
 
-    def _save_model_(self, model_file: str) -> bool:
+    def _save_model_(self, model_name: str=None, overwrite: bool=False) -> bool:
         if self.model is None or self.model['trained'] == False:
-            logging.warning(f'model is None or not trained!')
+            if self.debug:
+                print('model is None or not trained!')
+            else:
+                logging.warning('model is None or not trained!')
             return False
-        if 'models/' not in model_file:
-            model_file = 'models/' + model_file
-        if os.path.isfile(model_file):
-            logging.warning(f'model {model_file} already exists!')
+        if model_name is None:
+            model_name = self.model['name']
+        model_file = 'models/' + model_name + '.h5'
+        if not overwrite and os.path.isfile(model_file):
+            if self.debug:
+                print(f'model file {model_file} already exists!')
+            else:
+                logging.warning(f'model file {model_file} already exists!')
             return False
-        self.model['model'].save(model_file)
+        try:
+            self.model['model'].save(model_file)
+        except Exception as err:
+            raise Exception(str(err))
         return True
 
-    def create_model(self, model_name:str, model_type:str='LeNet') -> bool:
+    def create_model(self, model_name:str=None, model_type:str='LeNet') -> bool:
         '''
-        create and train a CNN model
+        create a CNN model
         '''
         try:
-            self.model = self.ModelFactory(model_name, model_type, self.debug).get_model()
-            self.DetectorTraining(training_set='../data/train', testing_set='../data/test',
+            self.model = self.ModelFactory(model_type=model_type, 
+                                           model_name=model_name,
+                                           debug=self.debug).get_model()
+        except Exception as err:
+            if self.debug:
+                print(str(err))
+                print(f'creating the {model_type}-type model {model_name} failed!')
+            else:
+                logging.error(str(err))
+                logging.error(f'creating the {model_type}-type model {model_name} failed!')
+            return False
+        return True
+
+    def train_model(self, training_set: str='../data/train',
+                          testing_set: str='../data/test') -> bool:
+        '''
+        train the current CNN model
+        '''
+        if self.model is None:
+            raise Exception('Error: model is not prepared yet, please either create or load one first!')
+        try:
+            self.DetectorTraining(training_set=training_set,
+                                  testing_set=testing_set,
                                   model=self.model, debug=self.debug)
-        except:
-            print(f'creating and training the {model_type}-type model {model_name} failed!')
+        except Exception as err:
+            if self.debug:
+                print(str(err))
+                print(f'creating and training the {model_type}-type model {model_name} failed!')
+            else:
+                logging.error(str(err))
+                logging.error(f'creating and training the {model_type}-type model {model_name} failed!')
             return False
         return True
 
@@ -467,6 +519,8 @@ class StrabismusDetector(object):
         dims.extend(list(image.shape))
         if self.debug:
             print(f'image.shape: {image.shape}')
+        else:
+            logging.info(f'image.shape: {image.shape}')
         try:
             predict = self.model['model'].predict_classes(image.reshape(dims))[[0]]
         except:
@@ -483,11 +537,16 @@ class StrabismusDetector(object):
             plt.show()
         return predict
 
-def test_model_training() -> None:
-    ...
 
-def test_model_prediction() -> None:
-    parser = argparse.ArgumentParser(description='Test Model Prediction')
+def main():
+    '''
+    sample command line:
+    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/raw/patient/eso_008.jpg --raw
+    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/raw/healthy/healthy_001.png --raw
+    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/test/patient/1609_r.jpg
+    $ python CNN4Strabismus.py -m model_03-31-20.h5 -i data/test/healthy/806.jpg
+    '''
+    parser = argparse.ArgumentParser(description='Model Prediction')
     parser.add_argument('-m', '--model_file', type=str, help='file name of the model to be loaded')
     parser.add_argument('-i', '--image_file', type=str, help='file name of the image to be diagnosed')
     parser.add_argument('--raw', help='input image is not processed', action='store_true')
@@ -495,19 +554,12 @@ def test_model_prediction() -> None:
     model_file = args.model_file
     image_file = args.image_file
     raw        = args.raw
-    detector = StrabismusDetector(model_file, True)
-    detector.isStrabismus(image_file, not raw)
+    try:
+        detector = StrabismusDetector(model_file, True)
+        detector.isStrabismus(image_file, not raw)
+    except Exception as err:
+        print(str(err))
+        logging.exception(str(err))
 
 if __name__ == '__main__':
-    test_preprocessing()
-    #test_model_prediction()
-
-
-
-
-
-
-
-
-
-
+    main()
