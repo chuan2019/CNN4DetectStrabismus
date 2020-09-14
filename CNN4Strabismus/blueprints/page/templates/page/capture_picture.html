@@ -1,0 +1,26 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Capture a Picture for Strabismus Diagnosis{% endblock %}
+{% block heading %}<h2>Capture a Picture for Strabismus Diagnosis</h2>{% endblock %}
+
+{% block body %}
+<div id="container">
+
+    <div>
+        <video playsinline autoplay></video>
+        <canvas></canvas>
+    </div>
+    <button>Take snapshot</button>
+
+</div>
+<div>
+    <h2>Diagnosis Result:</h2>
+</div>
+
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script 
+    src="{{ url_for('page.capture_picture', filename='static/js/takeSnapshot.js')}}" async>
+</script>
+
+
+{% endblock %}
