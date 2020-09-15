@@ -2,10 +2,12 @@ version: '2'
 
 services:
 
-    cnn-4-strabismus:
+    cnn4strabismus:
         build: .
         command: >
-            gunicorn -b 0.0.0.0:8000
+            gunicorn -b 0.0.0.0:8084
+              --certfile cert.pem
+              --keyfile key.pem
               --access-logfile -
               --reload
               "CNN4Strabismus.app:create_app()"
@@ -14,4 +16,4 @@ services:
         volumes:
           - '.:/CNN4Strabismus'
         ports:
-          - '8000:8000'
+          - '8084:8084'

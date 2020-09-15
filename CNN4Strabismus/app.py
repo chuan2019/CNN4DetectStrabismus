@@ -14,5 +14,7 @@ def create_app():
     app.config.from_pyfile('settings.py', silent=True)
 
     app.register_blueprint(page)
-    
+
+    print(f'app.url_map = {app.url_map}')
+
     return app
