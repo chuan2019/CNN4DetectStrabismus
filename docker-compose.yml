@@ -6,8 +6,8 @@ services:
         build: .
         command: >
             gunicorn -b 0.0.0.0:8084
-              --certfile cert.pem
-              --keyfile key.pem
+              --certfile cert/cert.pem
+              --keyfile cert/key.pem
               --access-logfile -
               --reload
               "CNN4Strabismus.app:create_app()"
