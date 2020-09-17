@@ -1,6 +1,6 @@
 # CNN for Strabismus Detection
 
-**Notice**: as the project is still ongoing, the currently provided models are not well trained yet!
+**Notice**: as the project is still **ONGOING**, the currently provided models are **NOT** well trained yet!
 
 Sample commands for detecting strabismus
 
