@@ -6,7 +6,7 @@ page_blueprint = Blueprint('page', __name__,
 
 @page_blueprint.route('/')
 def home():
-    print(f'page_blueprint.root_path = {page_blueprint.root_path}')
+    #print(f'page_blueprint.root_path = {page_blueprint.root_path}')
     try:
         return render_template('page/index.html')
     except TemplateNotFound:

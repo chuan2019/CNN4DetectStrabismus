@@ -6,47 +6,43 @@
 {% block body %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-sm-4" style="background-color:lavender;">
+        <div class="col-lg-6">
             <div class="inputoutput">
-                <img id="imageSrc" 
-                     src="{{ url_for('static', filename='images/Strabismus.png') }}"
-                     title="Strabismus" 
-                     alt="Strabismus"/>
+                <table cellpadding="0" cellspacing="0" width="0" border="0">
+                    <tbody>
+                        <tr>
+                            <td style="background-color:lavender;">
+                                <canvas id="canvasInput" width="250" height="250"></canvas>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!--
+                -->
                 <div class="caption">Uploaded Image</div>
+                <input type="file" id="fileInput" name="file">
             </div>
         </div>
-        <div class="col-sm-4" style="background-color:lavenderblush;">
+        <div class="col-lg-6">
             <div class="inputoutput">
-                <canvas id="canvasOutput" ></canvas>
+                <table cellpadding="0" cellspacing="0" width="0" border="0">
+                    <tbody>
+                        <tr>
+                            <td style="background-color:lavenderblush;">
+                                <canvas id="canvasOutput" width="250" height="250"></canvas>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 <div class="caption">Processed Image</div>
-            </div>        
+            </div>
         </div>
     </div>
 </div>
 
-<input type="file" id="fileInput" name="file" />
-
-<div>
+<div class="container-fluid">
     <h2>Diagnosis Result:</h2>
 </div>
-
-<script type="text/javascript">
-    let imgElement = document.getElementById("imageSrc")
-    let inputElement = document.getElementById("fileInput");
-
-    inputElement.addEventListener("change", (e) => {
-        imgElement.src = URL.createObjectURL(e.target.files[0]);
-    }, false);
-
-    imgElement.onload = function() {
-        let mat = cv.imread(imgElement);
-    }
-
-    imgElement.onload = function() {
-        let mat = cv.imread(imgElement);
-        cv.imshow('canvasOutput', mat);
-        mat.delete();
-    };
-</script>
-
+<script type="text/javascript" src="https://docs.opencv.org/3.4.0/opencv.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='scripts/photo/photo_process.js') }}"></script>
 {% endblock %}
