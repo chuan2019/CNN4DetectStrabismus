@@ -2,12 +2,44 @@ version: '2'
 
 services:
 
+    redis:
+        image: 'redis:6.0.5-buster'
+        container_name: 'cnn4strabismus-redis-db-01'
+        command: redis-server --requirepass admin
+        volumes:
+          - '../redis-db:/var/lib/redis/data'
+        ports:
+          - '6379:6379'
+        networks:
+          - cnn4strabismus-backend
+    
+    postgres:
+        image: 'postgres:9.5'
+        container_name: 'cnn4strabismus-postgres-db-01'
+        env_file:
+          - '.env'
+        volumes:
+          - '../postgres-db:/var/lib/postgresql/data'
+        ports:
+          - '5432:5432'
+        networks:
+          - cnn4strabismus-backend
+
     cnn4strabismus:
-        build: .
+        build:
+            context: .
+            dockerfile: cnn4strabismus.docker
+        image: cnn4strabismus
+        container_name: 'cnn4strabismus_web'
+#        command: >
+#            gunicorn -b 0.0.0.0:8084
+#              --certfile cert/cert.pem
+#              --keyfile cert/key.pem
+#              --access-logfile -
+#              --reload
+#              "CNN4Strabismus.app:create_app()"
         command: >
-            gunicorn -b 0.0.0.0:8084
-              --certfile cert/cert.pem
-              --keyfile cert/key.pem
+            gunicorn -b 0.0.0.0:8000
               --access-logfile -
               --reload
               "CNN4Strabismus.app:create_app()"
@@ -15,5 +47,15 @@ services:
             PYTHONUNBUFFERED: 'true'
         volumes:
           - '.:/CNN4Strabismus'
+#        ports:
+#          - '8084:8084'
         ports:
-          - '8084:8084'
+          - '8000:8000'
+        depends_on:
+          - redis
+          - postgres
+        networks:
+          - cnn4strabismus-backend
+
+networks:
+    cnn4strabismus-backend:

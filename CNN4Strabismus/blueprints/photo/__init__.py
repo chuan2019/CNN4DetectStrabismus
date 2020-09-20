@@ -1,0 +1,1 @@
+from CNN4Strabismus.blueprints.photo.views import photo_blueprint

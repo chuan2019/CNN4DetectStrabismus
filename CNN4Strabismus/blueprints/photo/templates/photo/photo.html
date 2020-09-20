@@ -1,0 +1,52 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Upload a Picture for Strabismus Diagnosis{% endblock %}
+{% block heading %}<h2>Upload a Picture for Strabismus Diagnosis</h2>{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-4" style="background-color:lavender;">
+            <div class="inputoutput">
+                <img id="imageSrc" 
+                     src="{{ url_for('static', filename='images/Strabismus.png') }}"
+                     title="Strabismus" 
+                     alt="Strabismus"/>
+                <div class="caption">Uploaded Image</div>
+            </div>
+        </div>
+        <div class="col-sm-4" style="background-color:lavenderblush;">
+            <div class="inputoutput">
+                <canvas id="canvasOutput" ></canvas>
+                <div class="caption">Processed Image</div>
+            </div>        
+        </div>
+    </div>
+</div>
+
+<input type="file" id="fileInput" name="file" />
+
+<div>
+    <h2>Diagnosis Result:</h2>
+</div>
+
+<script type="text/javascript">
+    let imgElement = document.getElementById("imageSrc")
+    let inputElement = document.getElementById("fileInput");
+
+    inputElement.addEventListener("change", (e) => {
+        imgElement.src = URL.createObjectURL(e.target.files[0]);
+    }, false);
+
+    imgElement.onload = function() {
+        let mat = cv.imread(imgElement);
+    }
+
+    imgElement.onload = function() {
+        let mat = cv.imread(imgElement);
+        cv.imshow('canvasOutput', mat);
+        mat.delete();
+    };
+</script>
+
+{% endblock %}

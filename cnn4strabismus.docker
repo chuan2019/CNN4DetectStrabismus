@@ -1,0 +1,16 @@
+FROM python:3.7.5-slim-buster
+MAINTAINER Chuan Zhang <chuan.zhang2015@gmail.com>
+
+ENV INSTALL_PATH /CNN4Strabismus
+RUN mkdir -p $INSTALL_PATH
+
+WORKDIR $INSTALL_PATH
+
+COPY . .
+#RUN pip install --upgrade pip
+RUN pip3 install -r cnn4strabismus.requirements --no-cache-dir
+
+#EXPOSE 8084
+EXPOSE 8000
+
+#CMD gunicorn -b 0.0.0.0:8084 --certfile cert/cert.pem --keyfile cert/key.pem --access-logfile - --reload "CNN4Strabismus.app:create_app()"

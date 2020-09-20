@@ -1,42 +1,28 @@
 from flask import Blueprint, render_template
 
-page = Blueprint('page', __name__,
-                         template_folder='templates',
-                         static_folder='static')
+page_blueprint = Blueprint('page', __name__,
+                                   template_folder='templates',
+                                   static_folder='static')
 
-@page.route('/')
+@page_blueprint.route('/')
 def home():
-    print(f'page.root_path = {page.root_path}')
+    print(f'page_blueprint.root_path = {page_blueprint.root_path}')
     try:
-        return render_template('page/home.html')
+        return render_template('page/index.html')
     except TemplateNotFound:
         abort(404)
 
-@page.route('/terms')
+@page_blueprint.route('/terms')
 def terms():
     try:
         return render_template('page/terms.html')
     except TemlateNotFound:
         abort(404)
 
-@page.route('/privacy')
+@page_blueprint.route('/privacy')
 def privacy():
     try:
         return render_template('page/privacy.html')
-    except TemplateNotFound:
-        abort(404)
-
-@page.route('/capture')
-def capture_picture():
-    try:
-        return render_template('page/capture_picture.html')
-    except TemplateNotFound:
-        abort(404)
-
-@page.route('/upload')
-def upload_picture():
-    try:
-        return render_template('page/upload_picture.html')
     except TemplateNotFound:
         abort(404)
 
