@@ -29,6 +29,8 @@ function failed() {
 
 function process_photo() {
     let src = cv.imread('canvasInput');
+    cv.imshow('canvasOutput', src);
+/*
     let gray = new cv.Mat();
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
 
@@ -65,10 +67,11 @@ function process_photo() {
         roiSrc.delete();
     }
     cv.imshow('canvasOutput', src);
-    src.delete();
     gray.delete();
     faceCascade.delete();
     eyeCascade.delete();
     faces.delete();
     eyes.delete();
+*/
+    src.delete();
 }
