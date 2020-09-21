@@ -12,9 +12,9 @@ function draw() {
     var canvas_input = document.getElementById("canvasInput");
     var ratio = 1.0;
     if (this.width > this.height) {
-        ratio = 250/this.width;
+        ratio = 400/this.width;
     } else {
-        ratio = 250/this.height;
+        ratio = 500/this.height;
     }
     canvas_input.getContext('2d').clearRect(0, 0, canvas_input.width, canvas_input.height);
     canvas_input.getContext('2d').drawImage(this, 0, 0, this.width*ratio, this.height*ratio);
