@@ -4,49 +4,49 @@
 {% block heading %}<h2>Capture a Picture for Strabismus Diagnosis</h2>{% endblock %}
 
 {% block body %}
-
-<div id="container">
-
-    <video playsinline autoplay></video>
-    <button>Take snapshot</button>
+<div class="container-fluid" style="height:85vh; padding:10px; background-image:url('static/images/network.jpg'); background-size:cover;">
+    <div class="row">
+        <div class="col-lg-5">
+            <div class="inputoutput">
+                <div class="caption" style="background-color: lavender;"><b>Streaming Video</b></div>
+                <table cellpadding="0" cellspacing="0" width="0" border="0">
+                    <tbody>
+                        <tr>
+                            <td style="background-color:lavender;">
+                                <div id="videoblock">
+                                    <video id="video_port" playsinline autoplay></video>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!--
+                -->
+                <button>Take snapshot</button>
+            </div>
+        </div>
+        <div class="col-lg-2">
+        </div>
+        <div class="col-lg-5">
+            <div class="inputoutput">
+                <div class="caption" style="background-color: lavenderblush;"><b>Captured Snapshot</b></div>
+                <table cellpadding="0" cellspacing="0" width="0" border="0">
+                    <tbody>
+                        <tr>
+                            <td style="background-color:lavenderblush;">
+                                <canvas id="canvasOutput" width="400" height="500"></canvas>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <canvas></canvas>
 </div>
 
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-<script async>
-    'use strict';
-
-    // Put variables in global scope to make them available to the browser console.
-    const video = document.querySelector('video');
-    const canvas = window.canvas = document.querySelector('canvas');
-    canvas.width = 300;
-    canvas.height = 280;
-
-    const button = document.querySelector('button');
-    button.onclick = function() {
-        console.log('Take snapshot button clicked!');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    };
-
-    const constraints = {
-        audio: false,
-        video: true
-    };
-
-    function handleSuccess(stream) {
-    window.stream = stream; // make stream available to browser console
-        video.srcObject = stream;
-    }
-
-    function handleError(error) {
-        console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
-    }
-
-    navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
-
-</script>
+<script src="{{ url_for('static', filename='scripts/video/video_process.js') }}"></script>
 
 <div>
     <h2>Diagnosis Result:</h2>

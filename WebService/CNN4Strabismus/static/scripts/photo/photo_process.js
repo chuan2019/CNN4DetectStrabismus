@@ -1,3 +1,5 @@
+'user strict';
+
 var inputImage = document.getElementById("fileInput");
 
 inputImage.onchange = function(e) {
