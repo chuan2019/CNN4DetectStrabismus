@@ -31,26 +31,26 @@ services:
             dockerfile: cnn4strabismus.docker
         image: cnn4strabismus
         container_name: 'cnn4strabismus_web'
-#        command: >
-#            gunicorn -b 0.0.0.0:8084
-#              --certfile cert/cert.pem
-#              --keyfile cert/key.pem
-#              --access-logfile -
-#              --reload
-#              "CNN4Strabismus.app:create_app()"
         command: >
-            gunicorn -b 0.0.0.0:8000
+            gunicorn -b 0.0.0.0:8084
+              --certfile cert/cert.pem
+              --keyfile cert/key.pem
               --access-logfile -
               --reload
               "CNN4Strabismus.app:create_app()"
+#        command: >
+#            gunicorn -b 0.0.0.0:8000
+#              --access-logfile -
+#              --reload
+#              "CNN4Strabismus.app:create_app()"
         environment:
             PYTHONUNBUFFERED: 'true'
         volumes:
           - '.:/CNN4Strabismus'
-#        ports:
-#          - '8084:8084'
         ports:
-          - '8000:8000'
+          - '8084:8084'
+#        ports:
+#          - '8000:8000'
         depends_on:
           - redis
           - postgres

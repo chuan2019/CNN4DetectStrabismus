@@ -4,35 +4,52 @@
 {% block heading %}<h2>Capture a Picture for Strabismus Diagnosis</h2>{% endblock %}
 
 {% block body %}
+<script type="text/javascript" src="https://docs.opencv.org/3.4.0/opencv.js"></script>
+<script type="text/javascript" src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<!--
+<script type="text/javascript" src="https://webrtc.github.io/adapter/adapter-5.0.4.js"></script>
+-->
+<button id="videoOnOff">Open Camera</button>
+<button id="takeSnapshot">Take Snapshot</button>
 <div class="container-fluid" style="height:85vh; padding:10px; background-image:url('static/images/network.jpg'); background-size:cover;">
     <div class="row">
         <div class="col-lg-5">
             <div class="inputoutput">
-                <div class="caption" style="background-color: lavender;"><b>Streaming Video</b></div>
                 <table cellpadding="0" cellspacing="0" width="0" border="0">
                     <tbody>
                         <tr>
-                            <td style="background-color:lavender;">
-                                <div id="videoblock">
-                                    <video id="video_port" playsinline autoplay></video>
+                            <td>
+                                <div class="caption" style="background-color: lavender; text-align: center;">
+                                    <b>Streaming Video</b>
                                 </div>
-                                <button id="video-on-off">Open Camera</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div id="videoblock">
+                                    <video id="videoInput" width="400" height="500"></video>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <button>Take snapshot</button>
             </div>
         </div>
         <div class="col-lg-2">
         </div>
         <div class="col-lg-5">
             <div class="inputoutput">
-                <div class="caption" style="background-color: lavenderblush;"><b>Captured Snapshot</b></div>
                 <table cellpadding="0" cellspacing="0" width="0" border="0">
                     <tbody>
                         <tr>
-                            <td style="background-color:lavenderblush;">
+                            <td>
+                                <div class="caption" style="background-color: lavenderblush;text-align: center;">
+                                    <b>Captured Snapshot</b>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
                                 <canvas id="canvasOutput" width="400" height="500"></canvas>
                             </td>
                         </tr>
@@ -41,14 +58,11 @@
             </div>
         </div>
     </div>
-    <canvas></canvas>
 </div>
-
-<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-<script src="{{ url_for('static', filename='scripts/video/video_process.js') }}"></script>
 
 <div>
     <h2>Diagnosis Result:</h2>
 </div>
-
+<script type="text/javascript" src="{{ url_for('static', filename='scripts/vendor/utils.js')}}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='scripts/video/video_process.js') }}"></script>
 {% endblock %}

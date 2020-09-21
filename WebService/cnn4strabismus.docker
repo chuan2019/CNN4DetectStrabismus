@@ -10,7 +10,7 @@ COPY . .
 #RUN pip install --upgrade pip
 RUN pip3 install -r cnn4strabismus.requirements --no-cache-dir
 
-#EXPOSE 8084
-EXPOSE 8000
+EXPOSE 8084
+#EXPOSE 8000
 
 #CMD gunicorn -b 0.0.0.0:8084 --certfile cert/cert.pem --keyfile cert/key.pem --access-logfile - --reload "CNN4Strabismus.app:create_app()"

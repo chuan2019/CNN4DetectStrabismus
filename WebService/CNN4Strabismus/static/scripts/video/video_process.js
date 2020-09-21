@@ -1,92 +1,86 @@
 'use strict';
 
-const constraints = window.constraints = {
-    audio: false,
-    video: true
-};
+let utils = new Utils();
 
-const video = document.querySelector('video');
+let streaming = false;
+let videoInput = document.getElementById('videoInput');
+let videoOnOff = document.getElementById('videoOnOff');
+let canvasOutput = document.getElementById('canvasOutput');
 
-function handleSuccess(stream) {
-    const videoTracks = stream.getVideoTracks();
-    console.log('Got stream with constraints:', constraints);
-    console.log(`Using video device: ${videoTracks[0].label}`);
-    window.stream = stream; // make variable available to browser console
-    video.srcObject = stream;
-}
+const FPS = 30;
 
-
-function handleError(error) {
-    if (error.name === 'ConstraintNotSatisfiedError') {
-        const v = constraints.video;
-        errorMsg(`The resolution ${v.width.exact}x${v.height.exact} px is not supported by your device.`);
-    } else if (error.name === 'PermissionDeniedError') {
-        errorMsg('Permissions have not been granted to use your camera and ' +
-            'microphone, you need to allow the page access to your devices in ' +
-            'order for the demo to work.');
-    }
-    errorMsg(`getUserMedia error: ${error.name}`, error);
-}
-  
-function errorMsg(msg, error) {
-    const errorElement = document.querySelector('#errorMsg');
-    errorElement.innerHTML += `<p>${msg}</p>`;
-    if (typeof error !== 'undefined') {
-        console.error(error);
-    }
-}
-
-async function init(e) {
-    if (e.target.value == "Open Camera") {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            handleSuccess(stream);
-            e.target.value = "Close Camera";
-        } catch (e) {
-            handleError(e);
-        }
+videoOnOff.addEventListener('click', () => {
+    if (!streaming) {
+        utils.startCamera('qvga', onVideoStarted, 'videoInput');
     } else {
-
+        utils.stopCamera();
+        onVideoStopped();
     }
+});
+
+function onVideoStarted() {
+    streaming = true;
+    videoOnOff.innerText = 'Close Camera';
+    videoInput.width = videoInput.videoWidth;
+    videoInput.height = videoInput.videoHeight;
+    // schedule the first one.
+    setTimeout(processVideo, 0);
 }
 
-video.addEventListener('click', e => init(e));
+function onVideoStopped() {
+    streaming = false;
+    canvasOutput.getContext('2d').clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+    videoOnOff.innerText = 'Open Camera';
+}
 
+utils.loadOpenCv(() => {
+    let faceCascadeFile = 'haarcascade_frontalface_default.xml';
+    utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
+        videoOnOff.removeAttribute('disabled');
+    })
+});
 
+function processVideo() {
+    let src = new cv.Mat(videoInput.height, videoInput.width, cv.CV_8UC4);
+    let dst = new cv.Mat(videoInput.height, videoInput.width, cv.CV_8UC4);
+    let gray = new cv.Mat();
+    let cap = new cv.VideoCapture(videoInput);
+    let faces = new cv.RectVector();
+    let classifier = new cv.CascadeClassifier();
 
+    // load pre-trained classifiers
+    classifier.load('haarcascade_frontalface_default.xml');
 
-
-
-
-
-function capture_video() {
-    // Put variables in global scope to make them available to the browser console.
-    const video = document.querySelector('video');
-    const canvas = window.canvas = document.querySelector('canvas');
-    canvas.width = 300;
-    canvas.height = 280;
-
-    const button = document.querySelector('button');
-    button.onclick = function() {
-        console.log('Take snapshot button clicked!');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    };
-
-    const constraints = {
-        audio: false,
-        video: true
-    };
-
-    function handleSuccess(stream) {
-    window.stream = stream; // make stream available to browser console
-        video.srcObject = stream;
+    try {
+        if (!streaming) {
+            // clean and stop.
+            src.delete();
+            dst.delete();
+            gray.delete();
+            faces.delete();
+            classifier.delete();
+            return;
+        }
+        let begin = Date.now();
+        // start processing.
+        cap.read(src);
+        src.copyTo(dst);
+        cv.cvtColor(dst, gray, cv.COLOR_RGBA2GRAY, 0);
+        // detect faces.
+        classifier.detectMultiScale(gray, faces, 1.1, 3, 0);
+        // draw faces.
+        for (let i = 0; i < faces.size(); ++i) {
+            let face = faces.get(i);
+            let point1 = new cv.Point(face.x, face.y);
+            let point2 = new cv.Point(face.x + face.width,
+                                      face.y + face.height);
+            cv.rectangle(dst, point1, point2, [255, 0, 0, 255]);
+        }
+        cv.imshow('canvasOutput', dst);
+        // schedule the next one.
+        let delay = 1000/FPS - (Date.now() - begin);
+        setTimeout(processVideo, delay);
+    } catch (err) {
+        utils.printError(err);
     }
-
-    function handleError(error) {
-        console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
-    }
-
-    navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
 }

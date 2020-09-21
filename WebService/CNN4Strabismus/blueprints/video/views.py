@@ -6,7 +6,8 @@ video_blueprint = Blueprint('video', __name__, template_folder='templates')
 def video_home():
     try:
         return render_template('video/video.html')
-    except TemplateNotFound:
+    except Exception as err:
+        print(str(err))
         abort(404)
 
 
