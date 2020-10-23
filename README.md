@@ -4,10 +4,5 @@ The code in this repo consists two parts. The first part mainly includes image p
 
 [<b>Under Construction ...</b>]
 
-<img src="https://github.com/chuan2019/CNN4DetectStrabismus/blob/dev/Cover.png">
-
-<img src="https://github.com/chuan2019/CNN4DetectStrabismus/blob/dev/Video.png">
-
-<img src="https://github.com/chuan2019/CNN4DetectStrabismus/blob/dev/Photo.png">
 
 
