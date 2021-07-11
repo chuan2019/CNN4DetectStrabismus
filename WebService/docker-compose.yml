@@ -21,7 +21,7 @@ services:
         volumes:
           - '../postgres-db:/var/lib/postgresql/data'
         ports:
-          - '5432:5432'
+          - '35432:5432'
         networks:
           - cnn4strabismus-backend
 
