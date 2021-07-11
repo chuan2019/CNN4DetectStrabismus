@@ -86,10 +86,10 @@ class PreProcess(object):
 
         def get_height(self) -> int:
             return self.bottom - self.top
-            
+
         def get_width(self) -> int:
             return self.right - self.left
-            
+
         def shift_vert(self, displacement: int=0) -> bool:
             if (self.bottom + displacement) < 0 or \
                (self.top    + displacement) < 0:
@@ -97,7 +97,7 @@ class PreProcess(object):
             self.bottom += displacement
             self.top    += displacement
             return True
-            
+
         def shift_hori(self, displacement: int=0) -> bool:
             if (self.left  + displacement) < 0 or \
                (self.right + displacement) < 0:
@@ -105,13 +105,13 @@ class PreProcess(object):
             self.left  += displacement
             self.right += displacement
             return True
-            
+
         def is_empty(self) -> bool:
             return self.left   == 0 and \
                     self.right  == 0 and \
                    self.bottom == 0 and \
                    self.top    == 0
-            
+
         def union(self, left: int, top: int, right: int, bottom: int) -> None:
             if self.debug:
                 print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
@@ -126,14 +126,16 @@ class PreProcess(object):
                 self.bottom = bottom
             if self.debug:
                 print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
-        
+
         def contains(self, region: object) -> bool:
             return self.left   <= region.left  and \
                    self.right  >= region.right and \
                    self.top    <= region.top   and \
                    self.bottom >= region.bottom
 
-    def __init__(self, target_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3), debug: bool=False):
+    def __init__(self,
+                 target_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3),
+                 debug: bool=False):
         self.debug = debug
         self.eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
         self.raw_image = None
@@ -204,7 +206,7 @@ class PreProcess(object):
         self.raw_eye_region   = self.Region()
         self.locate_eye_region()
         self.crop_eye_region()
-    
+
     def get_processed_image(self, image_type: str) -> ImageType:
         '''
         get extracted eye region either in RGB or GRAY
@@ -262,10 +264,12 @@ class PreProcess(object):
             plt.imshow(self.rgb_image_cropped)
             plt.show()
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
-    
+
     def resize_image(self, width: int=400, height: int=100) -> None:
         dim = (width, height)
-        self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped, dim, interpolation=cv2.INTER_AREA)
+        self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped,
+                                            dim,
+                                            interpolation=cv2.INTER_AREA)
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
         if self.debug:
             h, w, c = self.rgb_image_cropped.shape
@@ -275,7 +279,7 @@ class StrabismusDetector(object):
 
     class DetectorTraining(object):
 
-        def __init__(self, 
+        def __init__(self,
                      training_set: str,
                      testing_set:  str,
                      model:        ModelType,
@@ -307,11 +311,13 @@ class StrabismusDetector(object):
             try:
                 self.images_train = self.get_image_generator(training_set)
             except:
-                raise Exception(f'Error: preparing data set from {training_set} for training failed!')
+                raise Exception(f'Error: preparing data set from {training_set}' +
+                                 'for training failed!')
             try:
                 self.images_test  = self.get_image_generator(testing_set)
             except:
-                raise Exception(f'Error: preparing data set from {testing_set} for testing failed!')
+                raise Exception(f'Error: preparing data set from {testing_set}' +
+                                 'for testing failed!')
             try:
                 self._train_()
                 self.model['trained'] = True
@@ -387,7 +393,10 @@ class StrabismusDetector(object):
         def create_LeNet(self, name: str) -> ModelType:
             LeNet = Sequential()
             # 1st Convolution Layer
-            LeNet.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=self.input_shape, activation='relu'))
+            LeNet.add(Conv2D(filters=32,
+                             kernel_size=(3,3),
+                             input_shape=self.input_shape,
+                             activation='relu'))
             # 1st Max Pooling (Subsampling) Layer
             LeNet.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
@@ -408,7 +417,10 @@ class StrabismusDetector(object):
         def create_LeNet1(self, name: str) -> ModelType:
             LeNet1 = Sequential()
             # 1st Convolution Layer
-            LeNet1.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=self.input_shape, activation='relu'))
+            LeNet1.add(Conv2D(filters=32,
+                              kernel_size=(3,3),
+                              input_shape=self.input_shape,
+                              activation='relu'))
             # 1st Pooling Layer
             LeNet1.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
@@ -426,8 +438,8 @@ class StrabismusDetector(object):
             # Output Layer
             LeNet1.add(Dense(units=1, activation='sigmoid'))
             LeNet1.compile(loss='binary_crossentropy',
-                          optimizer='adam',
-                          metrics=['accuracy'])
+                           optimizer='adam',
+                           metrics=['accuracy'])
             return {'name': name, 'trained': False, 'model': LeNet1}
 
     def __init__(self, model_name: str=None, debug: bool=False) -> None:
@@ -498,7 +510,7 @@ class StrabismusDetector(object):
         create a CNN model
         '''
         try:
-            self.model = self.ModelFactory(model_type=model_type, 
+            self.model = self.ModelFactory(model_type=model_type,
                                            model_name=model_name,
                                            debug=self.debug).get_model()
         except Exception as err:
@@ -517,7 +529,8 @@ class StrabismusDetector(object):
         train the current CNN model
         '''
         if self.model is None:
-            raise Exception('Error: model is not prepared yet, please either create or load one first!')
+            raise Exception('Error: model is not prepared yet,' +
+                            'please either create or load one first!')
         try:
             self.DetectorTraining(training_set=training_set,
                                   testing_set=testing_set,
@@ -528,7 +541,8 @@ class StrabismusDetector(object):
                 print(f'creating and training the {model_type}-type model {model_name} failed!')
             else:
                 logging.error(str(err))
-                logging.error(f'creating and training the {model_type}-type model {model_name} failed!')
+                logging.error(f'creating and training the {model_type}-type' +
+                              f'model {model_name} failed!')
             return False
         return True
 
@@ -542,7 +556,7 @@ class StrabismusDetector(object):
         else:
             prep.set_image(cv2.imread(input_image))
         image = prep.get_processed_image('rgb')
-    
+
         dims = [1]
         dims.extend(list(image.shape))
         if self.debug:
@@ -575,9 +589,12 @@ def main():
     $ python CNN4Strabismus.py -m model_03-31-20 -i data/test/healthy/806.jpg
     '''
     parser = argparse.ArgumentParser(description='Model Prediction')
-    parser.add_argument('-m', '--model_file', type=str, help='file name of the model to be loaded')
-    parser.add_argument('-i', '--image_file', type=str, help='file name of the image to be diagnosed')
-    parser.add_argument('--raw', help='input image is not processed', action='store_true')
+    parser.add_argument('-m', '--model_file', type=str,
+                        help='file name of the model to be loaded')
+    parser.add_argument('-i', '--image_file', type=str,
+                        help='file name of the image to be diagnosed')
+    parser.add_argument('--raw', help='input image is not processed',
+                        action='store_true')
     args = parser.parse_args()
     model_file = args.model_file
     image_file = args.image_file
@@ -591,3 +608,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
