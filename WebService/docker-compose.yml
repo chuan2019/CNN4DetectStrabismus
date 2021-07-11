@@ -49,8 +49,6 @@ services:
           - '.:/CNN4Strabismus'
         ports:
           - '8084:8084'
-#        ports:
-#          - '8000:8000'
         depends_on:
           - redis
           - postgres
