@@ -8,7 +8,7 @@
 # Example: $ python -m unittest -v CNN4StrabismusUTs.py
 #######################################################################
 
-from CNN4Strabismus import *
+from ../cnn_4_strabismus import *
 import unittest
 
 class PreprocessingTestSuite(unittest.TestCase):
