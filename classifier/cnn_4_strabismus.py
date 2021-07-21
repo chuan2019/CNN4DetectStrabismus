@@ -30,10 +30,8 @@
            of the subject
 
 """
-header_text  = '\n\tCNN4Strabismus\n\n'
-header_text += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
-print(header_text)
-import os, cv2
+import os
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
@@ -46,6 +44,10 @@ import datetime as dt
 from typing import NewType, Tuple, Union, List, Any
 from abc import ABC, abstractmethod
 import asyncio
+
+HEADER_TEXT  = '\n\tCNN4Strabismus\n\n'
+HEADER_TEXT += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
+print(HEADER_TEXT)
 
 logfile_name = 'model_' + '-'.join([str(dt.date.today().year),
                                     str(dt.date.today().month),
