@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #######################################################################
 #    Project: Detecting Strabismus with Convolutional Neural Networks
 #

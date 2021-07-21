@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #######################################################################
 # Project: Detecting Strabismus with Convolutional Neural Networks
 # File   : CNN4Strabismus.py
@@ -8,7 +7,7 @@
 # Example: $ python -m unittest -v CNN4StrabismusUTs.py
 #######################################################################
 
-from ../cnn_4_strabismus import *
+from classifier.cnn_4_strabismus import *
 import unittest
 
 class PreprocessingTestSuite(unittest.TestCase):

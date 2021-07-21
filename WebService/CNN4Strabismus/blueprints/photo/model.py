@@ -1,4 +1,4 @@
-from Classifier import CNN4Strabismus as c4s
+from classifier import CNN4Strabismus as c4s
 
 
 
