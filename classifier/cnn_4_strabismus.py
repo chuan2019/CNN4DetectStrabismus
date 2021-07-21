@@ -76,6 +76,9 @@ class PreProcess:
     """
 
     class Region:
+        """
+        Region
+        """
 
         def __init__(self, left: int=0, top: int=0, right: int=0, bottom: int=0, debug: bool=False):
             if right < left:
@@ -89,12 +92,21 @@ class PreProcess:
             self.bottom = bottom
 
         def get_height(self) -> int:
+            '''
+            returns image height
+            '''
             return self.bottom - self.top
 
         def get_width(self) -> int:
+            '''
+            returns image width
+            '''
             return self.right - self.left
 
         def shift_vert(self, displacement: int=0) -> bool:
+            '''
+            shift image vertically
+            '''
             if (self.bottom + displacement) < 0 or \
                (self.top    + displacement) < 0:
                 return False
@@ -103,6 +115,9 @@ class PreProcess:
             return True
 
         def shift_hori(self, displacement: int=0) -> bool:
+            '''
+            shift image horizontally
+            '''
             if (self.left  + displacement) < 0 or \
                (self.right + displacement) < 0:
                 return False
@@ -111,12 +126,18 @@ class PreProcess:
             return True
 
         def is_empty(self) -> bool:
+            '''
+            check if image is empty or not
+            '''
             return self.left   == 0 and \
                     self.right  == 0 and \
                    self.bottom == 0 and \
                    self.top    == 0
 
         def union(self, left: int, top: int, right: int, bottom: int) -> None:
+            '''
+            merge image regions
+            '''
             if self.debug:
                 print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
                 print(f'new region: ({left}, {top}, {right}, {bottom})')
@@ -132,6 +153,9 @@ class PreProcess:
                 print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
 
         def contains(self, region: object) -> bool:
+            '''
+            check if a given region is in the current region
+            '''
             return self.left   <= region.left  and \
                    self.right  >= region.right and \
                    self.top    <= region.top   and \
@@ -153,6 +177,8 @@ class PreProcess:
         self.width  = target_shape[1]
 
     def load_image(self, input_file: str) -> ShapeType:
+        '''
+        '''
         if not os.path.isfile(input_file):
             raise Exception(f'Error: input file "{input_file}" is not found!')
         self.file = input_file
@@ -226,6 +252,8 @@ class PreProcess:
             return self.gry_image_cropped
 
     def plot_subregion(self, sub_region) -> None:
+        '''
+        '''
         if not self.raw_eye_region.contains(sub_region):
             logging.warning(f'the region ({sub_region.left}, {sub_region.top}, ' +
                   f'{sub_region.right}, {sub_region.bottom}) is not completely ' +
@@ -241,6 +269,8 @@ class PreProcess:
         plt.show()
 
     def locate_eye_region(self) -> bool:
+        '''
+        '''
         if self.gry_image is None:
             raise Exception('Error: image is None!')
         eyes = self.eye_cascade.detectMultiScale(self.gry_image)
@@ -258,6 +288,8 @@ class PreProcess:
         return True
 
     def crop_eye_region(self) -> None:
+        '''
+        '''
         dw = self.raw_eye_region.get_width() // 10
         left   = max(0, self.raw_eye_region.left - dw)
         right  = min(self.raw_eye_region.right + dw, self.raw_image_region.right)
@@ -270,6 +302,8 @@ class PreProcess:
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
 
     def resize_image(self, width: int=400, height: int=100) -> None:
+        '''
+        '''
         dim = (width, height)
         self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped,
                                             dim,
@@ -342,6 +376,8 @@ class StrabismusDetector:
                                 rescale:float=1/255,
                                 horizontal_flip:bool=True,
                                 fill_mode:str='nearest') -> object:
+            '''
+            '''
             image_gen = ImageDataGenerator(rotation_range,
                                            width_shift_range,
                                            height_shift_range,
@@ -356,6 +392,8 @@ class StrabismusDetector:
             return images
 
         def _train_(self) -> None:
+            '''
+            '''
             if self.images_train is None:
                 raise Exception('Error: images for training are not loaded yet!')
             try:
@@ -401,9 +439,13 @@ class StrabismusDetector:
                 raise Exception(f'Error: model type, \"{model_type}\", is not supported!')
 
         def get_model(self) -> ModelType:
+            '''
+            '''
             return self.model
 
         def create_LeNet(self, name: str) -> ModelType:
+            '''
+            '''
             LeNet = Sequential()
             # 1st Convolution Layer
             LeNet.add(Conv2D(filters=32,
@@ -428,6 +470,8 @@ class StrabismusDetector:
             return  {'name': name, 'trained': False, 'model': LeNet}
 
         def create_LeNet1(self, name: str) -> ModelType:
+            '''
+            '''
             LeNet1 = Sequential()
             # 1st Convolution Layer
             LeNet1.add(Conv2D(filters=32,
@@ -467,12 +511,16 @@ class StrabismusDetector:
                 self.model = None
 
     def get_model_names(self) -> ModelListType:
+        '''
+        '''
         model_files = []
         for (dirpath, dirname, filename) in os.walk('models'):
             model_files.extend(filename)
         return model_files
 
     def _load_model_(self, model_name: str) -> bool:
+        '''
+        '''
         model_file = 'models/' + model_name + '.h5'
         if self.debug:
             print(f'loading model file {model_file} ...')
@@ -497,6 +545,8 @@ class StrabismusDetector:
         return True
 
     def _save_model_(self, model_name: str=None, overwrite: bool=False) -> bool:
+        '''
+        '''
         if self.model is None or self.model['trained'] == False:
             if self.debug:
                 print('model is None or not trained!')
@@ -560,6 +610,8 @@ class StrabismusDetector:
         return True
 
     def isStrabismus(self, input_image: str, processed: bool=False) -> bool:
+        '''
+        '''
         if self.model is None:
             raise Exception(f'Error: model is not loaded or created yet!')
         prep = PreProcess(debug=self.debug)
