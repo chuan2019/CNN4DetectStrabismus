@@ -70,7 +70,7 @@ ModelListType = NewType('ModelListType', List[str])
 DEFAULT_HIGHT = 100
 DEFAULT_WIDTH = 400
 
-class PreProcess(object):
+class PreProcess:
     """
     Pre-processing input images
     """
@@ -279,9 +279,15 @@ class PreProcess(object):
             h, w, c = self.rgb_image_cropped.shape
             print(f'dim after resize: {(h, w)}')
 
-class StrabismusDetector(object):
+class StrabismusDetector:
+    """
+    StrabismusDetector
+    """
 
-    class DetectorTraining(object):
+    class DetectorTraining:
+        """
+        DetectorTraining
+        """
 
         def __init__(self,
                      training_set: str,
@@ -362,6 +368,9 @@ class StrabismusDetector(object):
                 raise Exception('Error: training model failed!')
 
     class ModelFactory(object):
+        """
+        ModelFactory
+        """
 
         def __init__(self, model_type:  str='LeNet',
                            model_name:  str=None,
