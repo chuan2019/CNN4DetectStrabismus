@@ -49,11 +49,11 @@ HEADER_TEXT  = '\n\tCNN4Strabismus\n\n'
 HEADER_TEXT += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
 print(HEADER_TEXT)
 
-logfile_name = 'model_' + '-'.join([str(dt.date.today().year),
+LOGFILE_NAME = 'model_' + '-'.join([str(dt.date.today().year),
                                     str(dt.date.today().month),
                                     str(dt.date.today().day)]) + '.log'
 
-logging.basicConfig(filename=logfile_name,
+logging.basicConfig(filename=LOGFILE_NAME,
                     #filemode='w',
                     format='%(asctime)s  [%(levelname)s:%(name)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -71,6 +71,9 @@ DEFAULT_HIGHT = 100
 DEFAULT_WIDTH = 400
 
 class PreProcess(object):
+    """
+    Pre-processing input images
+    """
 
     class Region:
 
@@ -146,8 +149,8 @@ class PreProcess(object):
         self.raw_image_region  = None
         self.rgb_image_cropped = None
         self.gry_image_cropped = None
-        self.HEIGHT = target_shape[0]
-        self.WIDTH  = target_shape[1]
+        self.height = target_shape[0]
+        self.width  = target_shape[1]
 
     def load_image(self, input_file: str) -> ShapeType:
         if not os.path.isfile(input_file):
@@ -215,8 +218,8 @@ class PreProcess(object):
         height, width, _ = self.rgb_image_cropped.shape
         if self.debug:
             print(f'dim: {(height, width)}')
-        if width != self.WIDTH or height != self.HEIGHT:
-            self.resize_image(self.WIDTH, self.HEIGHT)
+        if width != self.width or height != self.height:
+            self.resize_image(self.width, self.height)
         if image_type.upper() == 'RGB':
             return self.rgb_image_cropped
         elif image_type.upper() == 'GRAY':
