@@ -1,17 +1,26 @@
-#!/usr/bin/python
-#######################################################################
-# Project: Detecting Strabismus with Convolutional Neural Networks
-# File   : CNN4Strabismus.py
-# Purpose: Reorganize and Update unit test cases
-# Author : Chuan Zhang
-# Email  : chuan.zhang2015@gmail.com
-# Example: $ python -m unittest -v CNN4StrabismusUTs.py
-#######################################################################
+"""
+Project: Detecting Strabismus with Convolutional Neural Networks
+File   : CNN4Strabismus.py
+Purpose: Reorganize and Update unit test cases
+Author : Chuan Zhang
+Email  : chuan.zhang2015@gmail.com
+Example: $ python -m unittest -v CNN4StrabismusUTs.py
+"""
 
-from CNN4Strabismus import *
 import unittest
 
+from classifier.cnn_4_strabismus import (
+    DEFAULT_HIGHT, DEFAULT_WIDTH,
+    PreProcess, StrabismusDetector
+)
+
 class PreprocessingTestSuite(unittest.TestCase):
+    """
+    Purpose: testing preprocessing code
+    Features to be tested:
+        * Load Image
+        * Crop Image
+    """
 
     def setUp(self):
         self.raw_image_healthy = [
@@ -36,7 +45,8 @@ class PreprocessingTestSuite(unittest.TestCase):
         ]
         self.prep = PreProcess(debug=False)
 
-    def testLoadImage(self):
+    def test_load_image(self):
+        """test loading images"""
         failed = False
         try:
             for idx in range(len(self.raw_image_healthy)):
@@ -50,17 +60,18 @@ class PreprocessingTestSuite(unittest.TestCase):
             failed = True
         self.assertFalse(failed)
 
-    def testCroppingImage(self):
+    def test_cropping_image(self):
+        """test cropping images"""
         failed = False
         try:
             self.prep.load_image(self.raw_image_healthy[0]['file_name'])
             self.prep.preprocess()
             rgb_cropped = self.prep.get_processed_image('rgb')
             self.assertEqual(type(rgb_cropped).__name__, 'ndarray')
-            self.assertEqual(rgb_cropped.shape, (self.prep.HEIGHT, self.prep.WIDTH, 3))
+            self.assertEqual(rgb_cropped.shape, (DEFAULT_HIGHT, DEFAULT_WIDTH, 3))
             gry_cropped = self.prep.get_processed_image('gray')
             self.assertEqual(type(gry_cropped).__name__, 'ndarray')
-            self.assertEqual(gry_cropped.shape, (self.prep.HEIGHT, self.prep.WIDTH))
+            self.assertEqual(gry_cropped.shape, (DEFAULT_HIGHT, DEFAULT_WIDTH))
         except Exception as err:
             print(str(err))
             failed = True
@@ -68,6 +79,13 @@ class PreprocessingTestSuite(unittest.TestCase):
 
 
 class ModelPredictionTestSuite(unittest.TestCase):
+    """
+    Purpose: testing Model predictions
+    Features to be tested:
+        * Create, Save and Load Models
+        * Train a given model with given data
+        * Make predictions using a given model
+    """
 
     def setUp(self):
         self.models = [
@@ -100,7 +118,8 @@ class ModelPredictionTestSuite(unittest.TestCase):
             'data/test/patient/1604_r.jpg',
         ]
 
-    def testCreateLoadSaveModel(self):
+    def test_create_load_save_model(self):
+        """test creating, saving, and loading models"""
         failed = False
         try: # test loading models
             for model_name in self.models:
@@ -141,10 +160,12 @@ class ModelPredictionTestSuite(unittest.TestCase):
             failed = True
         self.assertFalse(failed)
 
-    def testTrainModel(self):
+    def test_train_model(self):
+        """test training models"""
         ...
 
-    def testDetection(self):        
+    def test_prediction(self):
+        """test making predictions"""
         failed = False
         try:
             detector = StrabismusDetector(self.models[2])

@@ -1,23 +1,22 @@
-#!/usr/bin/python
-#######################################################################
-#    Project: Detecting Strabismus with Convolutional Neural Networks
-#
-#    Copyright (C) 2020  Chuan Zhang, chuan.zhang2015@gmail.com
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##########################################################################
+"""
+    Project: Detecting Strabismus with Convolutional Neural Networks
+
+    Copyright (C) 2020  Chuan Zhang, chuan.zhang2015@gmail.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 """
  File    : CNN4Strabismus.py
 
@@ -31,10 +30,8 @@
            of the subject
 
 """
-header_text  = '\n\tCNN4Strabismus\n\n'
-header_text += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
-print(header_text)
-import os, cv2
+import os
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
@@ -48,11 +45,15 @@ from typing import NewType, Tuple, Union, List, Any
 from abc import ABC, abstractmethod
 import asyncio
 
-logfile_name = 'model_' + '-'.join([str(dt.date.today().year),
+HEADER_TEXT  = '\n\tCNN4Strabismus\n\n'
+HEADER_TEXT += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
+print(HEADER_TEXT)
+
+LOGFILE_NAME = 'model_' + '-'.join([str(dt.date.today().year),
                                     str(dt.date.today().month),
                                     str(dt.date.today().day)]) + '.log'
 
-logging.basicConfig(filename=logfile_name,
+logging.basicConfig(filename=LOGFILE_NAME,
                     #filemode='w',
                     format='%(asctime)s  [%(levelname)s:%(name)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -69,9 +70,15 @@ ModelListType = NewType('ModelListType', List[str])
 DEFAULT_HIGHT = 100
 DEFAULT_WIDTH = 400
 
-class PreProcess(object):
+class PreProcess:
+    """
+    Pre-processing input images
+    """
 
     class Region:
+        """
+        Region
+        """
 
         def __init__(self, left: int=0, top: int=0, right: int=0, bottom: int=0, debug: bool=False):
             if right < left:
@@ -85,34 +92,52 @@ class PreProcess(object):
             self.bottom = bottom
 
         def get_height(self) -> int:
+            '''
+            returns image height
+            '''
             return self.bottom - self.top
-            
+
         def get_width(self) -> int:
+            '''
+            returns image width
+            '''
             return self.right - self.left
-            
+
         def shift_vert(self, displacement: int=0) -> bool:
+            '''
+            shift image vertically
+            '''
             if (self.bottom + displacement) < 0 or \
                (self.top    + displacement) < 0:
                 return False
             self.bottom += displacement
             self.top    += displacement
             return True
-            
+
         def shift_hori(self, displacement: int=0) -> bool:
+            '''
+            shift image horizontally
+            '''
             if (self.left  + displacement) < 0 or \
                (self.right + displacement) < 0:
                 return False
             self.left  += displacement
             self.right += displacement
             return True
-            
+
         def is_empty(self) -> bool:
+            '''
+            check if image is empty or not
+            '''
             return self.left   == 0 and \
                     self.right  == 0 and \
                    self.bottom == 0 and \
                    self.top    == 0
-            
+
         def union(self, left: int, top: int, right: int, bottom: int) -> None:
+            '''
+            merge image regions
+            '''
             if self.debug:
                 print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
                 print(f'new region: ({left}, {top}, {right}, {bottom})')
@@ -126,14 +151,19 @@ class PreProcess(object):
                 self.bottom = bottom
             if self.debug:
                 print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
-        
+
         def contains(self, region: object) -> bool:
+            '''
+            check if a given region is in the current region
+            '''
             return self.left   <= region.left  and \
                    self.right  >= region.right and \
                    self.top    <= region.top   and \
                    self.bottom >= region.bottom
 
-    def __init__(self, target_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3), debug: bool=False):
+    def __init__(self,
+                 target_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3),
+                 debug: bool=False):
         self.debug = debug
         self.eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
         self.raw_image = None
@@ -143,10 +173,12 @@ class PreProcess(object):
         self.raw_image_region  = None
         self.rgb_image_cropped = None
         self.gry_image_cropped = None
-        self.HEIGHT = target_shape[0]
-        self.WIDTH  = target_shape[1]
+        self.height = target_shape[0]
+        self.width  = target_shape[1]
 
     def load_image(self, input_file: str) -> ShapeType:
+        '''
+        '''
         if not os.path.isfile(input_file):
             raise Exception(f'Error: input file "{input_file}" is not found!')
         self.file = input_file
@@ -204,7 +236,7 @@ class PreProcess(object):
         self.raw_eye_region   = self.Region()
         self.locate_eye_region()
         self.crop_eye_region()
-    
+
     def get_processed_image(self, image_type: str) -> ImageType:
         '''
         get extracted eye region either in RGB or GRAY
@@ -212,14 +244,16 @@ class PreProcess(object):
         height, width, _ = self.rgb_image_cropped.shape
         if self.debug:
             print(f'dim: {(height, width)}')
-        if width != self.WIDTH or height != self.HEIGHT:
-            self.resize_image(self.WIDTH, self.HEIGHT)
+        if width != self.width or height != self.height:
+            self.resize_image(self.width, self.height)
         if image_type.upper() == 'RGB':
             return self.rgb_image_cropped
         elif image_type.upper() == 'GRAY':
             return self.gry_image_cropped
 
     def plot_subregion(self, sub_region) -> None:
+        '''
+        '''
         if not self.raw_eye_region.contains(sub_region):
             logging.warning(f'the region ({sub_region.left}, {sub_region.top}, ' +
                   f'{sub_region.right}, {sub_region.bottom}) is not completely ' +
@@ -235,6 +269,8 @@ class PreProcess(object):
         plt.show()
 
     def locate_eye_region(self) -> bool:
+        '''
+        '''
         if self.gry_image is None:
             raise Exception('Error: image is None!')
         eyes = self.eye_cascade.detectMultiScale(self.gry_image)
@@ -252,6 +288,8 @@ class PreProcess(object):
         return True
 
     def crop_eye_region(self) -> None:
+        '''
+        '''
         dw = self.raw_eye_region.get_width() // 10
         left   = max(0, self.raw_eye_region.left - dw)
         right  = min(self.raw_eye_region.right + dw, self.raw_image_region.right)
@@ -262,20 +300,30 @@ class PreProcess(object):
             plt.imshow(self.rgb_image_cropped)
             plt.show()
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
-    
+
     def resize_image(self, width: int=400, height: int=100) -> None:
+        '''
+        '''
         dim = (width, height)
-        self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped, dim, interpolation=cv2.INTER_AREA)
+        self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped,
+                                            dim,
+                                            interpolation=cv2.INTER_AREA)
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
         if self.debug:
             h, w, c = self.rgb_image_cropped.shape
             print(f'dim after resize: {(h, w)}')
 
-class StrabismusDetector(object):
+class StrabismusDetector:
+    """
+    StrabismusDetector
+    """
 
-    class DetectorTraining(object):
+    class DetectorTraining:
+        """
+        DetectorTraining
+        """
 
-        def __init__(self, 
+        def __init__(self,
                      training_set: str,
                      testing_set:  str,
                      model:        ModelType,
@@ -307,11 +355,13 @@ class StrabismusDetector(object):
             try:
                 self.images_train = self.get_image_generator(training_set)
             except:
-                raise Exception(f'Error: preparing data set from {training_set} for training failed!')
+                raise Exception(f'Error: preparing data set from {training_set}' +
+                                 'for training failed!')
             try:
                 self.images_test  = self.get_image_generator(testing_set)
             except:
-                raise Exception(f'Error: preparing data set from {testing_set} for testing failed!')
+                raise Exception(f'Error: preparing data set from {testing_set}' +
+                                 'for testing failed!')
             try:
                 self._train_()
                 self.model['trained'] = True
@@ -326,6 +376,8 @@ class StrabismusDetector(object):
                                 rescale:float=1/255,
                                 horizontal_flip:bool=True,
                                 fill_mode:str='nearest') -> object:
+            '''
+            '''
             image_gen = ImageDataGenerator(rotation_range,
                                            width_shift_range,
                                            height_shift_range,
@@ -340,6 +392,8 @@ class StrabismusDetector(object):
             return images
 
         def _train_(self) -> None:
+            '''
+            '''
             if self.images_train is None:
                 raise Exception('Error: images for training are not loaded yet!')
             try:
@@ -352,6 +406,9 @@ class StrabismusDetector(object):
                 raise Exception('Error: training model failed!')
 
     class ModelFactory(object):
+        """
+        ModelFactory
+        """
 
         def __init__(self, model_type:  str='LeNet',
                            model_name:  str=None,
@@ -382,12 +439,19 @@ class StrabismusDetector(object):
                 raise Exception(f'Error: model type, \"{model_type}\", is not supported!')
 
         def get_model(self) -> ModelType:
+            '''
+            '''
             return self.model
 
         def create_LeNet(self, name: str) -> ModelType:
+            '''
+            '''
             LeNet = Sequential()
             # 1st Convolution Layer
-            LeNet.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=self.input_shape, activation='relu'))
+            LeNet.add(Conv2D(filters=32,
+                             kernel_size=(3,3),
+                             input_shape=self.input_shape,
+                             activation='relu'))
             # 1st Max Pooling (Subsampling) Layer
             LeNet.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
@@ -406,9 +470,14 @@ class StrabismusDetector(object):
             return  {'name': name, 'trained': False, 'model': LeNet}
 
         def create_LeNet1(self, name: str) -> ModelType:
+            '''
+            '''
             LeNet1 = Sequential()
             # 1st Convolution Layer
-            LeNet1.add(Conv2D(filters=32, kernel_size=(3,3), input_shape=self.input_shape, activation='relu'))
+            LeNet1.add(Conv2D(filters=32,
+                              kernel_size=(3,3),
+                              input_shape=self.input_shape,
+                              activation='relu'))
             # 1st Pooling Layer
             LeNet1.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
@@ -426,8 +495,8 @@ class StrabismusDetector(object):
             # Output Layer
             LeNet1.add(Dense(units=1, activation='sigmoid'))
             LeNet1.compile(loss='binary_crossentropy',
-                          optimizer='adam',
-                          metrics=['accuracy'])
+                           optimizer='adam',
+                           metrics=['accuracy'])
             return {'name': name, 'trained': False, 'model': LeNet1}
 
     def __init__(self, model_name: str=None, debug: bool=False) -> None:
@@ -442,12 +511,16 @@ class StrabismusDetector(object):
                 self.model = None
 
     def get_model_names(self) -> ModelListType:
+        '''
+        '''
         model_files = []
         for (dirpath, dirname, filename) in os.walk('models'):
             model_files.extend(filename)
         return model_files
 
     def _load_model_(self, model_name: str) -> bool:
+        '''
+        '''
         model_file = 'models/' + model_name + '.h5'
         if self.debug:
             print(f'loading model file {model_file} ...')
@@ -472,6 +545,8 @@ class StrabismusDetector(object):
         return True
 
     def _save_model_(self, model_name: str=None, overwrite: bool=False) -> bool:
+        '''
+        '''
         if self.model is None or self.model['trained'] == False:
             if self.debug:
                 print('model is None or not trained!')
@@ -498,7 +573,7 @@ class StrabismusDetector(object):
         create a CNN model
         '''
         try:
-            self.model = self.ModelFactory(model_type=model_type, 
+            self.model = self.ModelFactory(model_type=model_type,
                                            model_name=model_name,
                                            debug=self.debug).get_model()
         except Exception as err:
@@ -517,7 +592,8 @@ class StrabismusDetector(object):
         train the current CNN model
         '''
         if self.model is None:
-            raise Exception('Error: model is not prepared yet, please either create or load one first!')
+            raise Exception('Error: model is not prepared yet,' +
+                            'please either create or load one first!')
         try:
             self.DetectorTraining(training_set=training_set,
                                   testing_set=testing_set,
@@ -528,11 +604,14 @@ class StrabismusDetector(object):
                 print(f'creating and training the {model_type}-type model {model_name} failed!')
             else:
                 logging.error(str(err))
-                logging.error(f'creating and training the {model_type}-type model {model_name} failed!')
+                logging.error(f'creating and training the {model_type}-type' +
+                              f'model {model_name} failed!')
             return False
         return True
 
     def isStrabismus(self, input_image: str, processed: bool=False) -> bool:
+        '''
+        '''
         if self.model is None:
             raise Exception(f'Error: model is not loaded or created yet!')
         prep = PreProcess(debug=self.debug)
@@ -542,7 +621,7 @@ class StrabismusDetector(object):
         else:
             prep.set_image(cv2.imread(input_image))
         image = prep.get_processed_image('rgb')
-    
+
         dims = [1]
         dims.extend(list(image.shape))
         if self.debug:
@@ -575,9 +654,12 @@ def main():
     $ python CNN4Strabismus.py -m model_03-31-20 -i data/test/healthy/806.jpg
     '''
     parser = argparse.ArgumentParser(description='Model Prediction')
-    parser.add_argument('-m', '--model_file', type=str, help='file name of the model to be loaded')
-    parser.add_argument('-i', '--image_file', type=str, help='file name of the image to be diagnosed')
-    parser.add_argument('--raw', help='input image is not processed', action='store_true')
+    parser.add_argument('-m', '--model_file', type=str,
+                        help='file name of the model to be loaded')
+    parser.add_argument('-i', '--image_file', type=str,
+                        help='file name of the image to be diagnosed')
+    parser.add_argument('--raw', help='input image is not processed',
+                        action='store_true')
     args = parser.parse_args()
     model_file = args.model_file
     image_file = args.image_file
@@ -591,3 +673,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
