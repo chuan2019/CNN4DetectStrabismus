@@ -552,7 +552,7 @@ class StrabismusDetector:
         try:
             self.model['model'].save(model_file)
         except Exception as err:
-            raise Exception(str(err))
+            raise Exception(err) from err
         return True
 
     def create_model(self, model_name:str=None, model_type:str='LeNet') -> bool:
@@ -598,10 +598,10 @@ class StrabismusDetector:
             return False
         return True
 
-    def isStrabismus(self, input_image: str, processed: bool=False) -> bool:
+    def is_strabismus(self, input_image: str, processed: bool=False) -> bool:
         '''predict if the given subject has strabismus or not'''
         if self.model is None:
-            raise Exception(f'Error: model is not loaded or created yet!')
+            raise Exception('Error: model is not loaded or created yet!')
         prep = PreProcess(debug=self.debug)
         if not processed:
             prep.load_image(input_image)
@@ -618,10 +618,10 @@ class StrabismusDetector:
             logging.info('image.shape: (%d, %d)', image.shape[0], image.shape[1])
         try:
             predict = self.model['model'].predict_classes(image.reshape(dims))[[0]]
-        except:
-            raise Exception(f'Error: diagnosis failed! Input image may not be supported!')
+        except Exception as err:
+            raise Exception(err) from err
         if self.debug:
-            fig = plt.figure(figsize=(5, 5))
+            plt.figure(figsize=(5, 5))
             plt.imshow(image)
             if predict == 0:
                 plt.title('Prediction: Healthy')
@@ -654,11 +654,10 @@ def main():
     raw        = args.raw
     try:
         detector = StrabismusDetector(model_file, True)
-        detector.isStrabismus(image_file, not raw)
+        detector.is_strabismus(image_file, not raw)
     except Exception as err:
         print(str(err))
         logging.exception('%s', str(err))
 
 if __name__ == '__main__':
     main()
-
