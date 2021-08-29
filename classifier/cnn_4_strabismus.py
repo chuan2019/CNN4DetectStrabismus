@@ -15,9 +15,8 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 
-"""
+# --------------------------------------------------------------------------
  File    : CNN4Strabismus.py
 
  Purpose : Implementation of CNN related features as listed below
@@ -28,22 +27,20 @@
            are required
         3. Diagnosing a subject by classifying the input picture
            of the subject
-
 """
 import os
+import argparse
+import logging
+import datetime as dt
+from typing import NewType, Tuple, Union, List
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import argparse
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout, Activation
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
-import logging
-import datetime as dt
-from typing import NewType, Tuple, Union, List, Any
-from abc import ABC, abstractmethod
-import asyncio
+from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten
+#from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 
 HEADER_TEXT  = '\n\tCNN4Strabismus\n\n'
 HEADER_TEXT += 'Copyright (C) 2020 Chuan Zhang\n\n\n'
@@ -141,14 +138,10 @@ class PreProcess:
             if self.debug:
                 print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
                 print(f'new region: ({left}, {top}, {right}, {bottom})')
-            if self.left > left:
-                self.left = left
-            if self.top > top:
-                self.top = top
-            if self.right < right:
-                self.right = right
-            if self.bottom < bottom:
-                self.bottom = bottom
+            self.left   = min(self.left,   left)
+            self.top    = min(self.top,    top)
+            self.right  = max(self.right,  right)
+            self.bottom = max(self.bottom, bottom)
             if self.debug:
                 print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
 
@@ -165,10 +158,11 @@ class PreProcess:
                  target_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3),
                  debug: bool=False):
         self.debug = debug
-        self.eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+        self.file  = None
         self.raw_image = None
         self.rgb_image = None
         self.gry_image = None
+        self.eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
         self.raw_eye_region    = None
         self.raw_image_region  = None
         self.rgb_image_cropped = None
@@ -177,8 +171,7 @@ class PreProcess:
         self.width  = target_shape[1]
 
     def load_image(self, input_file: str) -> ShapeType:
-        '''
-        '''
+        '''load images'''
         if not os.path.isfile(input_file):
             raise Exception(f'Error: input file "{input_file}" is not found!')
         self.file = input_file
@@ -186,8 +179,8 @@ class PreProcess:
             self.raw_image = cv2.imread(input_file)
             self.rgb_image = cv2.cvtColor(self.raw_image, cv2.COLOR_BGR2RGB)
             self.gry_image = self.rgb_image[:,:,0]
-        except:
-            raise Exception(f'Error: loading image {input_file} failed!')
+        except Exception as err:
+            raise Exception(err) from err
         if self.debug:
             plt.subplot(3,1,1)
             plt.imshow(self.raw_image)
@@ -203,9 +196,9 @@ class PreProcess:
         Get pre-loaded image, assume the image is in BGR format
         '''
         if input_image is None:
-            raise Exception(f'Error: input image is None!')
+            raise Exception('Error: input image is None!')
         if len(input_image.shape) != 3:
-            raise Exception(f'Error: input image shape is not supported!')
+            raise Exception('Error: input image shape is not supported!')
         if image_type.upper() == 'BGR':
             self.raw_image = input_image
             self.rgb_image = cv2.cvtColor(self.raw_image, cv2.COLOR_BGR2RGB)
@@ -241,6 +234,8 @@ class PreProcess:
         '''
         get extracted eye region either in RGB or GRAY
         '''
+        if image_type.upper not in ['RGB', 'GRAY']:
+            raise Exception(f'image type: {image_type} is not supported!\n')
         height, width, _ = self.rgb_image_cropped.shape
         if self.debug:
             print(f'dim: {(height, width)}')
@@ -248,17 +243,18 @@ class PreProcess:
             self.resize_image(self.width, self.height)
         if image_type.upper() == 'RGB':
             return self.rgb_image_cropped
-        elif image_type.upper() == 'GRAY':
-            return self.gry_image_cropped
+        # elif image_type.upper() == 'GRAY':
+        return self.gry_image_cropped
 
     def plot_subregion(self, sub_region) -> None:
-        '''
-        '''
+        '''plot subregion'''
         if not self.raw_eye_region.contains(sub_region):
-            logging.warning(f'the region ({sub_region.left}, {sub_region.top}, ' +
-                  f'{sub_region.right}, {sub_region.bottom}) is not completely ' +
-                  f'inside the region ({self.raw_eye_region.left}, {self.raw_eye_region.top}, ' +
-                  f'{self.raw_eye_region.right}, {self.raw_eye_region.bottom})!')
+            logging.warning('the region (%d, %d, %d, %d) is not completely ' +
+                            'inside the region(%d, %d, %d, %d)!',
+                            sub_region.left, sub_region.top,
+                            sub_region.right, sub_region.bottom,
+                            self.raw_eye_region.left, self.raw_eye_region.top,
+                            self.raw_eye_region.right, self.raw_eye_region.bottom)
         rgb_image = self.rgb_image.copy()
         pt1       = (sub_region.left, sub_region.top)
         pt2       = (sub_region.right, sub_region.bottom)
@@ -269,30 +265,30 @@ class PreProcess:
         plt.show()
 
     def locate_eye_region(self) -> bool:
-        '''
-        '''
+        '''locate eye region'''
         if self.gry_image is None:
             raise Exception('Error: image is None!')
         eyes = self.eye_cascade.detectMultiScale(self.gry_image)
         if len(eyes) == 0:
-            logging.warning(f'no eye is detected in {self.file}!')
+            logging.warning('no eye is detected in %s!', self.file)
             return False
         for eye in eyes:
-            x,y,w,h = eye
+            eye_x, eye_y, eye_w, eye_h = eye
             if self.raw_eye_region.is_empty():
-                self.raw_eye_region = self.Region(x, y, x+w, y+h, self.debug)
+                self.raw_eye_region = self.Region(eye_x, eye_y,
+                                                  eye_x+eye_w, eye_y+eye_h,
+                                                  self.debug)
             else:
-                self.raw_eye_region.union(x, y, x+w, y+h)
+                self.raw_eye_region.union(eye_x, eye_y, eye_x+eye_w, eye_y+eye_h)
         if self.debug:
             self.plot_subregion(self.raw_eye_region)
         return True
 
     def crop_eye_region(self) -> None:
-        '''
-        '''
-        dw = self.raw_eye_region.get_width() // 10
-        left   = max(0, self.raw_eye_region.left - dw)
-        right  = min(self.raw_eye_region.right + dw, self.raw_image_region.right)
+        '''crop eye region'''
+        d_w = self.raw_eye_region.get_width() // 10
+        left   = max(0, self.raw_eye_region.left - d_w)
+        right  = min(self.raw_eye_region.right + d_w, self.raw_image_region.right)
         top    = self.raw_eye_region.top
         bottom = self.raw_eye_region.bottom
         self.rgb_image_cropped = self.rgb_image[top:bottom, left:right, :]
@@ -302,16 +298,15 @@ class PreProcess:
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
 
     def resize_image(self, width: int=400, height: int=100) -> None:
-        '''
-        '''
+        '''resize image'''
         dim = (width, height)
         self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped,
                                             dim,
                                             interpolation=cv2.INTER_AREA)
         self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
         if self.debug:
-            h, w, c = self.rgb_image_cropped.shape
-            print(f'dim after resize: {(h, w)}')
+            img_h, img_w, _ = self.rgb_image_cropped.shape
+            print(f'dim after resize: {(img_h, img_w)}')
 
 class StrabismusDetector:
     """
@@ -354,19 +349,18 @@ class StrabismusDetector:
                 self.validation_steps = 12
             try:
                 self.images_train = self.get_image_generator(training_set)
-            except:
-                raise Exception(f'Error: preparing data set from {training_set}' +
-                                 'for training failed!')
+            except Exception as err:
+                raise Exception(err) from err
             try:
                 self.images_test  = self.get_image_generator(testing_set)
-            except:
-                raise Exception(f'Error: preparing data set from {testing_set}' +
-                                 'for testing failed!')
+            except Exception as err:
+                raise Exception(err) from err
             try:
                 self._train_()
                 self.model['trained'] = True
-            except:
+            except Exception as err:
                 self.model['trained'] = False
+                raise Exception(err) from err
 
         def get_image_generator(self,
                                 directory: str,
@@ -376,8 +370,7 @@ class StrabismusDetector:
                                 rescale:float=1/255,
                                 horizontal_flip:bool=True,
                                 fill_mode:str='nearest') -> object:
-            '''
-            '''
+            '''get image generator'''
             image_gen = ImageDataGenerator(rotation_range,
                                            width_shift_range,
                                            height_shift_range,
@@ -392,8 +385,7 @@ class StrabismusDetector:
             return images
 
         def _train_(self) -> None:
-            '''
-            '''
+            '''train the model'''
             if self.images_train is None:
                 raise Exception('Error: images for training are not loaded yet!')
             try:
@@ -402,18 +394,19 @@ class StrabismusDetector:
                                             steps_per_epoch=self.steps_per_epoch,
                                             validation_data=self.images_test,
                                             validation_steps=self.validation_steps)
-            except:
-                raise Exception('Error: training model failed!')
+            except Exception as err:
+                raise Exception(err) from err
 
-    class ModelFactory(object):
+    class ModelFactory:
         """
         ModelFactory
         """
 
         def __init__(self, model_type:  str='LeNet',
                            model_name:  str=None,
-                           input_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3),
-                           debug:       bool=False):
+                           input_shape: Tuple[int]=(DEFAULT_HIGHT, DEFAULT_WIDTH, 3)
+                           #debug:       bool=False
+                           ):
             if len(input_shape) != 3 or input_shape[2] != 3:
                 raise Exception(f'Error: input shape, \"{input_shape}\", is not supported!')
             for num in input_shape:
@@ -432,72 +425,69 @@ class StrabismusDetector:
                 else:
                     model_name += '-' + str(dt.date.today().day)
             if model_type == 'LeNet':
-                self.model = self.create_LeNet(model_name)
+                self.model = self.create_lenet(model_name)
             elif model_type == 'LeNet1':
-                self.model = self.create_LeNet1(model_name)
+                self.model = self.create_lenet1(model_name)
             else:
                 raise Exception(f'Error: model type, \"{model_type}\", is not supported!')
 
         def get_model(self) -> ModelType:
-            '''
-            '''
+            '''get model'''
             return self.model
 
-        def create_LeNet(self, name: str) -> ModelType:
-            '''
-            '''
-            LeNet = Sequential()
+        def create_lenet(self, name: str) -> ModelType:
+            '''create LeNet'''
+            lenet = Sequential()
             # 1st Convolution Layer
-            LeNet.add(Conv2D(filters=32,
+            lenet.add(Conv2D(filters=32,
                              kernel_size=(3,3),
                              input_shape=self.input_shape,
                              activation='relu'))
             # 1st Max Pooling (Subsampling) Layer
-            LeNet.add(MaxPooling2D(pool_size=(2,2)))
+            lenet.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
-            LeNet.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu'))
+            lenet.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu'))
             # 2nd Max Pooling (Subsampling) Layer
-            LeNet.add(MaxPooling2D(pool_size=(2,2)))
+            lenet.add(MaxPooling2D(pool_size=(2,2)))
             # Flatten Layer
-            LeNet.add(Flatten())
+            lenet.add(Flatten())
             # 1st Full Connection Layer
-            LeNet.add(Dense(units=128, activation='relu'))
+            lenet.add(Dense(units=128, activation='relu'))
             # Output Layer
-            LeNet.add(Dense(units=1, activation='sigmoid'))
-            LeNet.compile(loss='binary_crossentropy',
+            lenet.add(Dense(units=1, activation='sigmoid'))
+            lenet.compile(loss='binary_crossentropy',
                           optimizer='adam',
                           metrics=['accuracy'])
-            return  {'name': name, 'trained': False, 'model': LeNet}
+            return  {'name': name, 'trained': False, 'model': lenet}
 
-        def create_LeNet1(self, name: str) -> ModelType:
-            '''
-            '''
-            LeNet1 = Sequential()
+        def create_lenet1(self, name: str) -> ModelType:
+            '''create LeNet1'''
+            lenet1 = Sequential()
             # 1st Convolution Layer
-            LeNet1.add(Conv2D(filters=32,
+            lenet1.add(Conv2D(filters=32,
                               kernel_size=(3,3),
                               input_shape=self.input_shape,
                               activation='relu'))
             # 1st Pooling Layer
-            LeNet1.add(MaxPooling2D(pool_size=(2,2)))
+            lenet1.add(MaxPooling2D(pool_size=(2,2)))
             # 2nd Convolution Layer
-            LeNet1.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu'))
+            lenet1.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu'))
             # 2nd Pooling Layer
-            LeNet1.add(MaxPooling2D(pool_size=(2,2)))
+            lenet1.add(MaxPooling2D(pool_size=(2,2)))
             # 3rd Convolution Layer
-            LeNet1.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu'))
+            lenet1.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu'))
             # 3rd Pooling Layer
-            LeNet1.add(MaxPooling2D(pool_size=(2,2)))
+            lenet1.add(MaxPooling2D(pool_size=(2,2)))
             # Flatten Layer
-            LeNet1.add(Flatten())
+            lenet1.add(Flatten())
             # 1st Full Connection Layer
-            LeNet1.add(Dense(units=128, activation='relu'))
+            lenet1.add(Dense(units=128, activation='relu'))
             # Output Layer
-            LeNet1.add(Dense(units=1, activation='sigmoid'))
-            LeNet1.compile(loss='binary_crossentropy',
+            lenet1.add(Dense(units=1, activation='sigmoid'))
+            lenet1.compile(loss='binary_crossentropy',
                            optimizer='adam',
                            metrics=['accuracy'])
-            return {'name': name, 'trained': False, 'model': LeNet1}
+            return {'name': name, 'trained': False, 'model': lenet1}
 
     def __init__(self, model_name: str=None, debug: bool=False) -> None:
         self.debug = debug
@@ -511,21 +501,19 @@ class StrabismusDetector:
                 self.model = None
 
     def get_model_names(self) -> ModelListType:
-        '''
-        '''
+        '''get model names'''
         model_files = []
-        for (dirpath, dirname, filename) in os.walk('models'):
+        for (_, _, filename) in os.walk('models'):
             model_files.extend(filename)
         return model_files
 
     def _load_model_(self, model_name: str) -> bool:
-        '''
-        '''
+        '''load model (private)'''
         model_file = 'models/' + model_name + '.h5'
         if self.debug:
             print(f'loading model file {model_file} ...')
         else:
-            logging.info(f'loading model file {model_file} ...')
+            logging.info('loading model file %s ...', model_file)
         try:
             model = load_model(model_file)
             self.model = {'name': model_name, 'trained': True, 'model': model}
@@ -535,19 +523,18 @@ class StrabismusDetector:
                 print(str(err))
                 print(f'Error: loading model \"{model_name}\" failed!')
             else:
-                logging.error(str(err))
-                logging.error(f'Error: loading model \"{model_name}\" failed!')
+                logging.error('%s', str(err))
+                logging.error('Error: loading model \"%s\" failed!', model_name)
             return False
         if self.debug:
             print(f'model file {model_file} is loaded!')
         else:
-            logging.info(f'model file {model_file} is loaded!')
+            logging.info('model file %s is loaded!', model_file)
         return True
 
     def _save_model_(self, model_name: str=None, overwrite: bool=False) -> bool:
-        '''
-        '''
-        if self.model is None or self.model['trained'] == False:
+        '''save model (private)'''
+        if self.model is None or self.model['trained'] is False:
             if self.debug:
                 print('model is None or not trained!')
             else:
@@ -560,7 +547,7 @@ class StrabismusDetector:
             if self.debug:
                 print(f'model file {model_file} already exists!')
             else:
-                logging.warning(f'model file {model_file} already exists!')
+                logging.warning('model file %s already exists!', model_file)
             return False
         try:
             self.model['model'].save(model_file)
@@ -569,28 +556,26 @@ class StrabismusDetector:
         return True
 
     def create_model(self, model_name:str=None, model_type:str='LeNet') -> bool:
-        '''
-        create a CNN model
-        '''
+        '''create a CNN model'''
         try:
             self.model = self.ModelFactory(model_type=model_type,
-                                           model_name=model_name,
-                                           debug=self.debug).get_model()
+                                           model_name=model_name
+                                           #debug=self.debug
+                                           ).get_model()
         except Exception as err:
             if self.debug:
                 print(str(err))
                 print(f'creating the {model_type}-type model {model_name} failed!')
             else:
-                logging.error(str(err))
-                logging.error(f'creating the {model_type}-type model {model_name} failed!')
+                logging.error('%s', str(err))
+                logging.error('creating the %s-type model %s failed!',
+                              model_type, model_name)
             return False
         return True
 
     def train_model(self, training_set: str='../data/train',
                           testing_set: str='../data/test') -> bool:
-        '''
-        train the current CNN model
-        '''
+        '''train the current CNN model'''
         if self.model is None:
             raise Exception('Error: model is not prepared yet,' +
                             'please either create or load one first!')
@@ -601,17 +586,20 @@ class StrabismusDetector:
         except Exception as err:
             if self.debug:
                 print(str(err))
-                print(f'creating and training the {model_type}-type model {model_name} failed!')
+                #print(f'creating and training the {model_type}-type model {model_name} failed!')
+                # TODO: get model_type and model_name values properly
+                print('creating and training the model failed!')
             else:
-                logging.error(str(err))
-                logging.error(f'creating and training the {model_type}-type' +
-                              f'model {model_name} failed!')
+                logging.error('%s', str(err))
+                #logging.error('creating and training the %s-type' +
+                #              'model %s failed!', model_type, model_name)
+                # TODO: get model_type and model_name values properly
+                logging.error('creating and training the model failed!')
             return False
         return True
 
     def isStrabismus(self, input_image: str, processed: bool=False) -> bool:
-        '''
-        '''
+        '''predict if the given subject has strabismus or not'''
         if self.model is None:
             raise Exception(f'Error: model is not loaded or created yet!')
         prep = PreProcess(debug=self.debug)
@@ -627,7 +615,7 @@ class StrabismusDetector:
         if self.debug:
             print(f'image.shape: {image.shape}')
         else:
-            logging.info(f'image.shape: {image.shape}')
+            logging.info('image.shape: (%d, %d)', image.shape[0], image.shape[1])
         try:
             predict = self.model['model'].predict_classes(image.reshape(dims))[[0]]
         except:
@@ -669,7 +657,7 @@ def main():
         detector.isStrabismus(image_file, not raw)
     except Exception as err:
         print(str(err))
-        logging.exception(str(err))
+        logging.exception('%s', str(err))
 
 if __name__ == '__main__':
     main()
