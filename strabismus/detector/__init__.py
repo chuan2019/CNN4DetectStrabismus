@@ -1,7 +1,28 @@
+"""
+    Project: Detecting Strabismus with Convolutional Neural Networks
+
+    Copyright (C) 2020  Chuan Zhang, chuan.zhang2015@gmail.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 import os
 import sys
 import logging
 import datetime as dt
+from typing import NewType, Tuple, Union, List
+import numpy as np
+from keras.models import Sequential
 
 #############################
 #   package path            #
@@ -21,6 +42,8 @@ logging.basicConfig(filename=LOGFILE_NAME,
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.DEBUG)
 
+logger = logging.getLogger('strabismus.detector.logger')
+
 #############################
 # global variables/type     #
 #############################
@@ -36,4 +59,8 @@ DEFAULT_WIDTH = 400
 
 DEBUG = os.environ.get('CNN4DS_DEBUG', True)
 
+ShapeType = NewType('ShapeType', Union[Tuple[int, int, int], Tuple[int, int]])
+ImageType = NewType('ImageType', np.ndarray)
 
+ModelType = NewType('ModelType', {'name': str, 'trained': bool, 'model': Sequential})
+ModelListType = NewType('ModelListType', List[str])

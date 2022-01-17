@@ -22,15 +22,18 @@
  Purpose : classes for preprocessing raw images
 
 """
+from typing import Tuple
 import os
 import cv2
 import matplotlib.pyplot as plt
-import numpy as np
-from typing import NewType, Tuple, Union, List
-
-ShapeType = NewType('ShapeType', Union[Tuple[int, int, int], Tuple[int, int]])
-
-DEBUG = os.environ.get('CNN4DS_DEBUG', True)
+from detector import (
+    DEFAULT_WIDTH,
+    DEFAULT_HEIGHT,
+    DEBUG,
+    ShapeType,
+    ImageType,
+    logger
+)
 
 class Vertex:
     """
@@ -42,32 +45,32 @@ class Vertex:
         self._y = y
 
     @property
-    def x(self):
+    def x(self): # pylint: disable=invalid-name
         '''check x value'''
         return self._x
 
     @property
-    def y(self):
+    def y(self): # pylint: disable=invalid-name
         '''check y value'''
         return self._y
 
     @x.setter
-    def x(self, value):
+    def x(self, value): # pylint: disable=invalid-name
         '''set x value'''
         self._x = value
 
     @y.setter
-    def y(self, value):
+    def y(self, value): # pylint: disable=invalid-name
         '''set y value'''
         self._y = value
 
     @x.deleter
-    def x(self):
+    def x(self): # pylint: disable=invalid-name
         '''delete variable _x'''
         del self._x
 
     @y.deleter
-    def y(self):
+    def y(self): # pylint: disable=invalid-name
         '''delete variable _y'''
         del self._y
 
@@ -81,7 +84,7 @@ class Region:
                 all coordinates must be non-negative integers
     """
 
-    def __init__(self, v0: Vertex=Vertex(0,0), v1: Vertex=Vertex(0,0)):
+    def __init__(self, top_left: Vertex=Vertex(0,0), bottom_right: Vertex=Vertex(0,0)):
         '''
         constructing a Region object, default: empty region
         the vertical axis in image coordinates is pointing downwards
@@ -93,31 +96,45 @@ class Region:
                 |                                |
                 v                          (0,0) ---------->
 
-        :v0: top left corner
-        :v1: bottom right corner
+        :top_left:     top left corner
+        :bottom_right: bottom right corner
         '''
+        self.top    = 0
+        self.left   = 0
+        self.bottom = 0
+        self.right  = 0
         try:
-            self.setRegion(v0, v1)
-        except ValueError as ve:
-            raise ValueError(str(ve))
+            self.set_region(top_left, bottom_right)
+        except ValueError as err:
+            raise ValueError(str(err)) from err
 
-    def setRegion(self, v0: Vertex, v1: Vertex) -> None:
+    def set_region(self, top_left: Vertex, bottom_right: Vertex) -> None:
         '''
-        :v0: top left corner
-        :v1: bottom right corner
+        :top_left: top left corner
+        :bottom_right: bottom right corner
         '''
-        if v0.x < 0 or v0.y < 0:
-            raise ValueError(f'top left corner: {v0} is not in the first quadrant!')
-        if v1.x < 0 or v1.y < 0:
-            raise ValueError(f'bottom right corner: {v1} is not in the first quadrant!')
-        if v0.x > v1.x:
-            raise ValueError(f'bottom right corner: {v1} is on the left of top left corner: {v0}!')
-        if v0.y > v1.y:
-            raise ValueError(f'top left corner: {v0} is below the bottom right corner: {v1}')
-        self.left   = v0.x
-        self.top    = v0.y
-        self.right  = v1.x
-        self.bottom = v1.y
+        if top_left.x < 0 or top_left.y < 0:
+            raise ValueError(
+                f'top left corner: {top_left} is not in the first quadrant!'
+            )
+        if bottom_right.x < 0 or bottom_right.y < 0:
+            raise ValueError(
+                f'bottom right corner: {bottom_right} is not in the first quadrant!'
+            )
+        if top_left.x > bottom_right.x:
+            raise ValueError(
+                f'bottom right corner: {bottom_right} is on the left of top ' +
+                f'left corner: {top_left}!'
+            )
+        if top_left.y > bottom_right.y:
+            raise ValueError(
+                f'top left corner: {top_left} is below the bottom right ' +
+                f'corner: {bottom_right}'
+            )
+        self.left   = top_left.x
+        self.top    = top_left.y
+        self.right  = bottom_right.x
+        self.bottom = bottom_right.y
 
 
     @property
@@ -169,14 +186,17 @@ class Region:
         :other: the other image region to be merged with current region
         '''
         if DEBUG:
-            print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
-            print(f'new region: ({other.left}, {other.top}, {other.right}, {other.bottom})')
+            logger.debug('origin region: (%d, %d, %d, %d)',
+                         self.left, self.top, self.right, self.bottom)
+            logger.debug('new region: (%d, %d, %d, %d)',
+                         other.left, other.top, other.right, other.bottom)
         self.left   = min(self.left,   other.left)
         self.top    = min(self.top,    other.top) # smaller y corresponds to upper location
         self.right  = max(self.right,  other.right)
         self.bottom = max(self.bottom, other.bottom) # larger y corresponds to lower location
         if DEBUG:
-            print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
+            logger.debug('merged region: (%d, %d, %d, %d)',
+                         self.left, self.top, self.right, self.bottom)
 
     def intersect(self, other: 'Region') -> None:
         '''
@@ -184,14 +204,17 @@ class Region:
         :other: the other image region to be merged with current region
         '''
         if DEBUG:
-            print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
-            print(f'new region: ({other.left}, {other.top}, {other.right}, {other.bottom})')
+            logger.debug('origin region: (%d, %d, %d, %d)',
+                         self.left, self.top, self.right, self.bottom)
+            logger.debug('new region: (%d, %d, %d, %d)',
+                         other.left, other.top, other.right, other.bottom)
         self.left   = max(self.left,   other.left)
         self.top    = max(self.top,    other.top) # larger y corresponds to lower location
         self.right  = min(self.right,  other.right)
         self.bottom = min(self.bottom, other.bottom) # smaller y corresponds to upper location
         if DEBUG:
-            print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
+            logger.debug('merged region: (%d, %d, %d, %d)',
+                         self.left, self.top, self.right, self.bottom)
 
     def contains(self, other: 'Region') -> bool:
         '''
@@ -211,12 +234,34 @@ class Image:
     class of images and basic operations
     """
 
-    def __init__(self):
+    def __init__(self, src_img: str=''):
+        '''
+        constructing Image object in two ways:
+          1. default: empty Image object
+          2. load image from the provided image path: src_img
+        '''
         self._image  = None
         self._height = 0
         self._width  = 0
         self._type   = None
         self._file   = ''
+        if os.path.isfile(src_img):
+            self.load(src_img)
+
+    def set_image(self, _img: ImageType, _type: str) -> None:
+        '''
+        replace the current image and type with the provided image and type
+        in this case, source image file becomes unknown (empty path string)
+        :_img: provided (raw) image
+        :_type: provided image (color) type, 'BGR', 'RGB', or 'GRAY'
+        '''
+        if not isinstance(_img, ImageType):
+            raise ValueError('ValueError: {type(_img)} is not of ImageType!')
+        if _type not in ('BGR', 'RGB', 'GRAY'):
+            raise ValueError('ValueError: image type {_type} is not supported!')
+        self._type  = _type
+        self._image = _img
+        self._file  = ''
 
     @property
     def type(self):
@@ -228,13 +273,15 @@ class Image:
 
     @property
     def height(self):
+        '''check height'''
         return self._height
 
     @property
     def width(self):
+        '''check width'''
         return self._width
 
-    def toRGB(self) -> ShapeType:
+    def to_rgb(self) -> ImageType:
         '''
         export current image to RGB image, current image remains intact
         '''
@@ -249,7 +296,7 @@ class Image:
             raise TypeError(f'converting {self._type} image to RGB type is not supported!')
         return target_image
 
-    def toBGR(self) -> ShapeType:
+    def to_bgr(self) -> ImageType:
         '''
         export current image to BGR image, current image remains intact
         '''
@@ -262,8 +309,9 @@ class Image:
             target_image = cv2.cvtColor(self._image, cv2.COLOR_RGB2BGR)
         else:
             raise TypeError(f'converting {self._type} image to BGR type is not supported!')
+        return target_image
 
-    def toGRAY(self) -> ShapeType:
+    def to_gray(self) -> ImageType:
         '''
         export current image to GRAY image, current image remains intact
         '''
@@ -272,9 +320,13 @@ class Image:
         target_image = None
         if self._type == 'GRAY':
             target_image = self._image
-        elif self._type == 'BGR' or self._type == 'RGB':
-            target_image = Image()
-            target_image
+        elif self._type == 'BGR':
+            target_image = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
+        elif self._type == 'RGB':
+            target_image = cv2.cvtColor(self._image, cv2.COLOR_RGB2GRAY)
+        else:
+            raise TypeError(f'converting {self._type} image to GRAYSCALE type is not supported!')
+        return target_image
 
     def load(self, input_file: str) -> ShapeType:
         '''load a BGR image from file'''
@@ -286,8 +338,13 @@ class Image:
             self._type  = 'BGR'
         except Exception as err:
             raise Exception(err) from err
+        self._height, self._width, _ = self._image.shape
+        if DEBUG:
+            logger.debug('image shape: (%d, %d, %d)',
+                         self._image.shape[0], self._image.shape[1], self._image.shape[2])
 
     def show(self) -> None:
+        '''converting current image to RGB type, then display'''
         if self._type == 'BGR':
             image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
         elif self._type == 'RGB':
@@ -299,14 +356,15 @@ class Image:
         plt.imshow(image)
         plt.show()
 
-    def resize(self, width: int=400, height: int=100) -> None:
-        '''resize image'''
+    def resize(self, width: int=DEFAULT_WIDTH, height: int=DEFAULT_HEIGHT) -> Tuple[str, ImageType]:
+        '''
+        resize image: rescale the current image to the target size
+        '''
+        if width <= 0 or height <= 0:
+            raise ValueError(f'ValueError: width={width}, height={height}!')
         dim = (width, height)
-        self.rgb_image_cropped = cv2.resize(self.rgb_image_cropped,
-                                            dim,
-                                            interpolation=cv2.INTER_AREA)
-        self.gry_image_cropped = self.rgb_image_cropped[:, :, 0]
+        img = cv2.resize(self._image, dim, interpolation=cv2.INTER_AREA)
         if DEBUG:
-            img_h, img_w, _ = self.rgb_image_cropped.shape
-            print(f'dim after resize: {(img_h, img_w)}')
-
+            img_h, img_w, _ = img.shape
+            logger.debug('dim after resize: (%d, %d)', img_h, img_w)
+        return (self.type, img)
