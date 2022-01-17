@@ -43,26 +43,32 @@ class Vertex:
 
     @property
     def x(self):
+        '''check x value'''
         return self._x
 
     @property
     def y(self):
+        '''check y value'''
         return self._y
 
     @x.setter
     def x(self, value):
+        '''set x value'''
         self._x = value
 
     @y.setter
     def y(self, value):
+        '''set y value'''
         self._y = value
 
     @x.deleter
     def x(self):
+        '''delete variable _x'''
         del self._x
 
     @y.deleter
     def y(self):
+        '''delete variable _y'''
         del self._y
 
     def __repr__(self):
@@ -77,6 +83,16 @@ class Region:
 
     def __init__(self, v0: Vertex=Vertex(0,0), v1: Vertex=Vertex(0,0)):
         '''
+        constructing a Region object, default: empty region
+        the vertical axis in image coordinates is pointing downwards
+
+        image coordinates:                 normal coordinates:
+         (0,0)  ---------->                      ^
+                |                                |
+                |                                |
+                |                                |
+                v                          (0,0) ---------->
+
         :v0: top left corner
         :v1: bottom right corner
         '''
@@ -96,20 +112,21 @@ class Region:
             raise ValueError(f'bottom right corner: {v1} is not in the first quadrant!')
         if v0.x > v1.x:
             raise ValueError(f'bottom right corner: {v1} is on the left of top left corner: {v0}!')
-        if v0.y < v1.y:
+        if v0.y > v1.y:
             raise ValueError(f'top left corner: {v0} is below the bottom right corner: {v1}')
         self.left   = v0.x
         self.top    = v0.y
         self.right  = v1.x
         self.bottom = v1.y
-        
+
 
     @property
     def height(self) -> int:
         '''
         returns region height
+        note: in image coordinates, y axis points downwards
         '''
-        return self.top - self.bottom
+        return self.bottom - self.top
 
     @property
     def width(self) -> int:
@@ -120,7 +137,8 @@ class Region:
 
     def shift_vert(self, displacement: int=0):
         '''
-        shift region vertically
+        shift region vertically, positive direction is downward
+        :displacement: positive - moving downward; negative - moving upward
         '''
         if (self.bottom + displacement) < 0 or \
             (self.top    + displacement) < 0:
@@ -154,9 +172,9 @@ class Region:
             print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
             print(f'new region: ({other.left}, {other.top}, {other.right}, {other.bottom})')
         self.left   = min(self.left,   other.left)
-        self.top    = max(self.top,    other.top)
+        self.top    = min(self.top,    other.top) # smaller y corresponds to upper location
         self.right  = max(self.right,  other.right)
-        self.bottom = min(self.bottom, other.bottom)
+        self.bottom = max(self.bottom, other.bottom) # larger y corresponds to lower location
         if DEBUG:
             print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
 
@@ -169,9 +187,9 @@ class Region:
             print(f'origin region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
             print(f'new region: ({other.left}, {other.top}, {other.right}, {other.bottom})')
         self.left   = max(self.left,   other.left)
-        self.top    = min(self.top,    other.top)
+        self.top    = max(self.top,    other.top) # larger y corresponds to lower location
         self.right  = min(self.right,  other.right)
-        self.bottom = max(self.bottom, other.bottom)
+        self.bottom = min(self.bottom, other.bottom) # smaller y corresponds to upper location
         if DEBUG:
             print(f'merged region: ({self.left}, {self.top}, {self.right}, {self.bottom})')
 
@@ -182,8 +200,8 @@ class Region:
         '''
         return self.left   <= other.left  and \
                self.right  >= other.right and \
-               self.top    >= other.top   and \
-               self.bottom <= other.bottom
+               self.top    <= other.top   and \
+               self.bottom >= other.bottom
 
     def __repr__(self):
         return f'({self.left}, {self.top}, {self.right}, {self.bottom})'
@@ -291,5 +309,4 @@ class Image:
         if DEBUG:
             img_h, img_w, _ = self.rgb_image_cropped.shape
             print(f'dim after resize: {(img_h, img_w)}')
-
 

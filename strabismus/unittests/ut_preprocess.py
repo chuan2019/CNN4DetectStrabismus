@@ -105,9 +105,9 @@ class TestSuite_Preprocessing(unittest.TestCase):
             print(str(ve))
         else:
             self.fail('ValueError is expected!')
-        # top < bottom
+        # top > bottom : top is below bottom
         try:
-            r.setRegion(Vertex(1, 2), Vertex(3, 4))
+            r.setRegion(Vertex(1, 4), Vertex(3, 2))
         except ValueError as ve:
             print(str(ve))
         else:
@@ -121,9 +121,9 @@ class TestSuite_Preprocessing(unittest.TestCase):
             self.fail('ValueError is expected!')
 
         try:
-            r1 = Region(Vertex(1, 20), Vertex(18, 10))
-            r2 = Region(Vertex(2, 18), Vertex(15, 16))
-            r3 = Region(Vertex(3, 17), Vertex(19, 12))
+            r1 = Region(Vertex(1, 10), Vertex(18, 20))
+            r2 = Region(Vertex(2, 16), Vertex(15, 18))
+            r3 = Region(Vertex(3, 12), Vertex(19, 17))
         except:
             self.fail('Region initialization error!')
         self.assertEqual(r1.height, 10)
@@ -134,7 +134,7 @@ class TestSuite_Preprocessing(unittest.TestCase):
 
         r2.union(r3)
         self.assertTrue(r2.contains(r3))
-        self.assertEqual(str(r2), '(2, 18, 19, 12)')
+        self.assertEqual(str(r2), '(2, 12, 19, 18)')
         r1.intersect(r3)
         self.assertTrue(r3.contains(r1))
         
@@ -142,7 +142,7 @@ class TestSuite_Preprocessing(unittest.TestCase):
             r3.shift_vert(-3)
         except:
             self.fail('shift_vert() error!')
-        self.assertEqual(str(r3), '(3, 14, 19, 9)')
+        self.assertEqual(str(r3), '(3, 9, 19, 14)')
         self.assertFalse(r2.contains(r3))
         try:
             r3.shift_vert(-10)
@@ -155,13 +155,13 @@ class TestSuite_Preprocessing(unittest.TestCase):
             r3.shift_vert(4)
         except:
             self.fail('shift_vert() error!')
-        self.assertEqual(str(r3), '(3, 18, 19, 13)')
+        self.assertEqual(str(r3), '(3, 13, 19, 18)')
         self.assertTrue(r2.contains(r3))
         try:
             r3.shift_hori(1)
         except:
             self.fail('shift_hori() error!')
-        self.assertEqual(str(r3), '(4, 18, 20, 13)')
+        self.assertEqual(str(r3), '(4, 13, 20, 18)')
         self.assertFalse(r2.contains(r3))
 
         try:
@@ -170,7 +170,7 @@ class TestSuite_Preprocessing(unittest.TestCase):
             print('ValueError is expected')
         else:
             self.fail('ValueError is expected!')
-        self.assertEqual(str(r3), '(4, 18, 20, 13)')
+        self.assertEqual(str(r3), '(4, 13, 20, 18)')
 
 
 if __name__ == '__main__':
