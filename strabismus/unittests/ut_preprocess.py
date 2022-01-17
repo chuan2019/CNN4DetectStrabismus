@@ -41,7 +41,7 @@ class TestSuitePreprocessing(unittest.TestCase):
              'shape': (467, 600, 3)}
         ]
 
-    def testVertex(self): # pylint: disable=invalid-name
+    def test_vertex(self):
         '''testing Vertex data structure'''
         vtx = Vertex()
         self.assertEqual(vtx.x, 0)
@@ -59,7 +59,7 @@ class TestSuitePreprocessing(unittest.TestCase):
         self.assertEqual(vtx.y, -134)
         self.assertEqual(str(vtx), '(200, -134)')
 
-    def testRegionDef(self): # pylint: disable=invalid-name
+    def test_region_def(self):
         '''testing Region data structure'''
         rgn = Region()
         self.assertEqual(str(rgn), '(0, 0, 0, 0)')
@@ -109,7 +109,7 @@ class TestSuitePreprocessing(unittest.TestCase):
         else:
             self.fail('ValueError is expected!')
 
-    def testRegionOp(self): # pylint: disable=invalid-name
+    def test_region_op(self):
         '''testing Region operations'''
         try:
             rgn1 = Region(Vertex(1, 10), Vertex(18, 20))
@@ -163,7 +163,7 @@ class TestSuitePreprocessing(unittest.TestCase):
             self.fail('ValueError is expected!')
         self.assertEqual(str(rgn3), '(4, 13, 20, 18)')
 
-    def testImageDef(self): # pylint: disable=invalid-name
+    def test_image_def(self):
         '''testing Image data structure'''
         # testing empty Image
         try:
@@ -222,7 +222,7 @@ class TestSuitePreprocessing(unittest.TestCase):
             self.fail('TypeError: img.to_gray()!')
         self.assertEqual(new_img.shape[:2], (img.height, img.width))
 
-    def testImageOp(self): # pylint: disable=invalid-name
+    def test_image_op(self):
         '''testing Image operations'''
         file_name = self.src_image[0]['file_name']
         img_shape = self.src_image[0]['shape']
