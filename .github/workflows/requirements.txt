@@ -1,6 +1,0 @@
-keras==2.7.0
-matplotlib==3.5.1
-numpy==1.22.1
-opencv-python==4.5.5.62
-pylint==2.12.2
-tensorflow==2.7.0
