@@ -2,6 +2,7 @@
 import os
 import sys
 import unittest
+import cv2
 
 pkg_dir = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '../'
@@ -163,6 +164,33 @@ class TestSuitePreprocessing(unittest.TestCase):
             self.fail('ValueError is expected!')
         self.assertEqual(str(rgn3), '(4, 13, 20, 18)')
 
+    def test_region_comparison(self):
+        '''testing region area and region comparison'''
+        try:
+            rgn1 = Region(Vertex(1, 10), Vertex(18, 20))
+            rgn2 = Region(Vertex(2, 16), Vertex(15, 18))
+            rgn3 = Region(Vertex(3, 12), Vertex(19, 17))
+            rgn4 = Region(Vertex(10, 8), Vertex(20, 25))
+        except ValueError:
+            self.fail('Region initialization error!')
+        # region area
+        self.assertEqual(rgn1.area, 170)
+        self.assertEqual(rgn2.area,  26)
+        self.assertEqual(rgn3.area,  80)
+        self.assertEqual(rgn4.area, 170)
+        # comparing regions
+        self.assertTrue(rgn1 > rgn2)
+        self.assertTrue(rgn1 > rgn3)
+        self.assertTrue(rgn1 >= rgn2)
+        self.assertFalse(rgn1 <= rgn2)
+        self.assertFalse(rgn2 > rgn3)
+        self.assertFalse(rgn2 == rgn3)
+        self.assertTrue(rgn2 < rgn3)
+        self.assertTrue(rgn1 == rgn4)
+        self.assertTrue(rgn1 >= rgn4)
+        self.assertTrue(rgn1 <= rgn4)
+        self.assertFalse(rgn1 != rgn4)
+
     def test_image_def(self):
         '''testing Image data structure'''
         # testing empty Image
@@ -176,19 +204,19 @@ class TestSuitePreprocessing(unittest.TestCase):
 
         # exporting empty image causes TypeError
         try:
-            img.to_rgb()
+            img.export("RGB")
         except TypeError:
             print('TypeError is expected!')
         else:
             self.fail('TypeError is expected!')
         try:
-            img.to_bgr()
+            img.export("BGR")
         except TypeError:
             print('TypeError is expected!')
         else:
             self.fail('TypeError is expected!')
         try:
-            img.to_gray()
+            img.export("GRAY")
         except TypeError:
             print('TypeError is expected!')
         else:
@@ -205,33 +233,47 @@ class TestSuitePreprocessing(unittest.TestCase):
 
         # exporting loaded image should work
         try:
-            new_img = img.to_rgb()
+            new_img = img.export('RGB')
         except TypeError:
-            self.fail('TypeError: img.to_rgb()!')
+            self.fail('TypeError: img.export("RGB")!')
         self.assertEqual(new_img.shape[:2], (img.height, img.width))
 
         try:
-            new_img = img.to_bgr()
+            new_img = img.export('BGR')
         except TypeError:
-            self.fail('TypeError: img.to_bgr()!')
+            self.fail('TypeError: img.export("BGR")!')
         self.assertEqual(new_img.shape[:2], (img.height, img.width))
 
         try:
-            img.to_gray()
+            img.export('GRAY')
         except TypeError:
-            self.fail('TypeError: img.to_gray()!')
+            self.fail('TypeError: img.export("GRAY")!')
         self.assertEqual(new_img.shape[:2], (img.height, img.width))
 
-    def test_image_op(self):
-        '''testing Image operations'''
+    def test_image_op1(self):
+        '''testing basic Image operations'''
         file_name = self.src_image[0]['file_name']
         img_shape = self.src_image[0]['shape']
         try:
             img = Image(file_name)
         except Exception: # pylint: disable=broad-except
             self.fail(f'loading image from {file_name} failed!')
-        self.assertEqual(img.height, img_shape[0])
-        self.assertEqual(img.width,  img_shape[1])
+        self.assertEqual((img.height, img.width), img_shape[:2])
+        try:
+            rgb_img = img.export('RGB')
+        except TypeError:
+            self.fail('TypeError occured when exporting image to RGB type!')
+        self.assertEqual(rgb_img.shape, img_shape)
+        try:
+            bgr_img = img.export('BGR')
+        except TypeError:
+            self.fail('TypeError occured when exporting image to BGR type!')
+        self.assertEqual(bgr_img.shape, img_shape)
+        try:
+            gry_img = img.export('GRAY')
+        except TypeError:
+            self.fail('TypeError occured when exporting image to GRAY type!')
+        self.assertEqual(gry_img.shape, img_shape[:2])
         try:
             img.resize(width=0, height=100)
         except ValueError:
@@ -250,8 +292,16 @@ class TestSuitePreprocessing(unittest.TestCase):
         except ValueError:
             self.fail('ValueError occured when resizing image with default arguments!')
         self.assertEqual(new_type, 'BGR')
-        self.assertEqual(new_img.shape[0], DEFAULT_HEIGHT)
-        self.assertEqual(new_img.shape[1], DEFAULT_WIDTH)
+        self.assertEqual(new_img.shape[:2], (DEFAULT_HEIGHT, DEFAULT_WIDTH))
+
+        img_shape = self.src_image[1]['shape']
+        try:
+            new_img = cv2.imread(self.src_image[1]['file_name'])
+            new_shape = img.set_image(new_img,'BGR')
+        except ValueError:
+            self.fail('ValueError occured when setting image!')
+        self.assertEqual(img_shape, new_shape)
+        self.assertFalse(img.eye_located())
 
 if __name__ == '__main__':
     unittest.main()

@@ -24,15 +24,19 @@
 """
 from typing import Tuple
 import os
+from functools import total_ordering
 import cv2
+import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from detector import (
     DEFAULT_WIDTH,
     DEFAULT_HEIGHT,
     DEBUG,
     ShapeType,
     ImageType,
-    logger
+    logger,
+    CLASSIFIER_EYE
 )
 
 class Vertex:
@@ -78,6 +82,7 @@ class Vertex:
         return f'({self._x}, {self._y})'
 
 
+@total_ordering
 class Region:
     """
         Region: class of rectanglular region on 2D plane
@@ -152,6 +157,13 @@ class Region:
         '''
         return self.right - self.left
 
+    @property
+    def area(self) -> int:
+        '''
+        returns area of the region
+        '''
+        return self.width * self.height
+
     def shift_vert(self, displacement: int=0):
         '''
         shift region vertically, positive direction is downward
@@ -218,8 +230,10 @@ class Region:
 
     def contains(self, other: 'Region') -> bool:
         '''
-        check image containment
+        check image region containment
         :other: the other image region to be checked if inside the current region
+        :return: True - the provided region is inside the current region;
+                 False - the provided region is not inside the current region
         '''
         return self.left   <= other.left  and \
                self.right  >= other.right and \
@@ -227,7 +241,30 @@ class Region:
                self.bottom >= other.bottom
 
     def __repr__(self):
+        '''
+        :return: the string representation of the region, which are the x and y
+                 coordinates of its top-left corner and bottom-right corner
+        '''
         return f'({self.left}, {self.top}, {self.right}, {self.bottom})'
+
+    def __eq__(self, other: 'Region') -> bool:
+        '''
+        check if two regions have same area or not
+        :other: the other image region to be checked if has same area as the current region
+        :return: True - two regions are in same size;
+                 False - two regions are in different sizes
+        '''
+        return self.area == other.area
+
+    def __gt__(self, other: 'Region') -> bool:
+        '''
+        check if the provided image region is smaller than current image region
+        :other: the other image region to be checked if smaller than the current region
+        :return: True - the provided region is smaller than current region;
+                 False - the provided region is not smaller than current region
+        '''
+        return self.area > other.area
+
 
 class Image:
     """
@@ -240,31 +277,42 @@ class Image:
           1. default: empty Image object
           2. load image from the provided image path: src_img
         '''
-        self._image  = None
-        self._height = 0
-        self._width  = 0
-        self._type   = None
-        self._file   = ''
-        if os.path.isfile(src_img):
+        self._image     = None
+        self._height    = 0
+        self._width     = 0
+        self._type      = None
+        self._file      = ''
+        self.img_region = Region()
+        self.eye_region = Region()
+        if src_img:
+            if not os.path.isfile(src_img):
+                raise IOError(f'{src_img} is not found!')
+            logger.info('loading image from %s.', src_img)
             self.load(src_img)
 
-    def set_image(self, _img: ImageType, _type: str) -> None:
+    def set_image(self, _img: ImageType, _type: str) -> ShapeType:
         '''
         replace the current image and type with the provided image and type
         in this case, source image file becomes unknown (empty path string)
         :_img: provided (raw) image
         :_type: provided image (color) type, 'BGR', 'RGB', or 'GRAY'
         '''
-        if not isinstance(_img, ImageType):
+        if not isinstance(_img, np.ndarray): # ImageType is just alias and used for type hint
             raise ValueError('ValueError: {type(_img)} is not of ImageType!')
         if _type not in ('BGR', 'RGB', 'GRAY'):
             raise ValueError('ValueError: image type {_type} is not supported!')
         self._type  = _type
         self._image = _img
         self._file  = ''
+        self._height = _img.shape[0]
+        self._width  = _img.shape[1]
+        self.img_region = Region(Vertex(0, 0), Vertex(self._width, self._height))
+        self.eye_region = Region()
+        logger.warning('image is copied from other source, source file becomes UNKNOWN!')
+        return _img.shape
 
     @property
-    def type(self):
+    def type(self) -> str:
         '''
         return the type of the current image:
             RGB, BGR, GRAY
@@ -272,60 +320,64 @@ class Image:
         return self._type
 
     @property
-    def height(self):
+    def height(self) -> int:
         '''check height'''
         return self._height
 
     @property
-    def width(self):
+    def width(self) -> int:
         '''check width'''
         return self._width
 
-    def to_rgb(self) -> ImageType:
+    def eye_located(self) -> bool:
         '''
-        export current image to RGB image, current image remains intact
+        check if eye region is located from the image
+        if eye region is not located, there could be two reasons:
+            1. eye region is not searched yet
+            2. there is no eye region in the image
         '''
-        if self._image is None:
-            raise TypeError('cannot convert empty image!')
-        target_image = None
-        if self._type == 'RGB':
-            target_image = self._image
-        elif self._type == 'BGR':
-            target_image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
-        else:
-            raise TypeError(f'converting {self._type} image to RGB type is not supported!')
-        return target_image
+        return not self.eye_region.is_empty()
 
-    def to_bgr(self) -> ImageType:
+    # pylint: disable=R0912
+    def export(self, target_type: str) -> ImageType:
         '''
-        export current image to BGR image, current image remains intact
+        export current image to RGB, BGR or GRAY image, current image remains intact
         '''
         if self._image is None:
-            raise TypeError('cannot convert empty image!')
+            raise TypeError('cannot export empty image!')
         target_image = None
-        if self._type == 'BGR':
-            target_image = self._image
-        elif self._type == 'RGB':
-            target_image = cv2.cvtColor(self._image, cv2.COLOR_RGB2BGR)
+        if target_type == 'RGB':
+            if self._type == 'RGB':
+                target_image = self._image
+            elif self._type == 'BGR':
+                target_image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
+            else:
+                raise TypeError(f'exporting {self._type} image to RGB type is not supported!')
+        elif target_type == 'BGR':
+            if self._type == 'BGR':
+                target_image = self._image
+            elif self._type == 'RGB':
+                target_image = cv2.cvtColor(self._image, cv2.COLOR_RGB2BGR)
+            else:
+                raise TypeError(
+                    f'exporting {self._type} image to BGR type is not supported!'
+                )
+        elif target_type == 'GRAY':
+            if self._type == 'GRAY':
+                target_image = self._image
+            elif self._type == 'BGR':
+                target_image = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
+            elif self._type == 'RGB':
+                target_image = cv2.cvtColor(self._image, cv2.COLOR_RGB2GRAY)
+            else:
+                raise TypeError(
+                    f'converting {self._type} image to GRAYSCALE type is not supported!'
+                )
         else:
-            raise TypeError(f'converting {self._type} image to BGR type is not supported!')
-        return target_image
+            raise TypeError(
+                f'exporting {self._type} image to {target_type} type is not supported!'
+            )
 
-    def to_gray(self) -> ImageType:
-        '''
-        export current image to GRAY image, current image remains intact
-        '''
-        if self._image is None:
-            raise TypeError('cannot convert empty image!')
-        target_image = None
-        if self._type == 'GRAY':
-            target_image = self._image
-        elif self._type == 'BGR':
-            target_image = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
-        elif self._type == 'RGB':
-            target_image = cv2.cvtColor(self._image, cv2.COLOR_RGB2GRAY)
-        else:
-            raise TypeError(f'converting {self._type} image to GRAYSCALE type is not supported!')
         return target_image
 
     def load(self, input_file: str) -> ShapeType:
@@ -339,6 +391,7 @@ class Image:
         except Exception as err:
             raise Exception(err) from err
         self._height, self._width, _ = self._image.shape
+        self.img_region = Region(Vertex(), Vertex(self._height, self._width))
         if DEBUG:
             logger.debug('image shape: (%d, %d, %d)',
                          self._image.shape[0], self._image.shape[1], self._image.shape[2])
@@ -368,3 +421,62 @@ class Image:
             img_h, img_w, _ = img.shape
             logger.debug('dim after resize: (%d, %d)', img_h, img_w)
         return (self.type, img)
+
+    def locate_eye_region(self) -> bool:
+        '''
+        search and locate eye region
+        :return: True: eye region is found; False: eye region is not found
+        '''
+        if self._image is None:
+            return False
+        gry_image = None
+        if self._type != 'GRAY':
+            gry_image = self._image[:,:,0]
+        else:
+            gry_image = self._image
+        if not os.path.isfile(CLASSIFIER_EYE):
+            raise IOError(f'{CLASSIFIER_EYE} is not found!')
+        eyes = cv2.CascadeClassifier(CLASSIFIER_EYE).detectMultiScale(gry_image)
+        if len(eyes) < 2:
+            logger.warning('%d eye is detected in %s!', len(eyes), self._file)
+            return False
+        for eye in eyes:
+            eye_x, eye_y, eye_w, eye_h = eye
+            if DEBUG:
+                logger.info('Eye Region detected: (%d, %d, %d, %d)',
+                             eye_x, eye_y, eye_x+eye_w, eye_y+eye_h)
+                plt.imshow(gry_image, cmap='gray')
+                # get current reference
+                axes = plt.gca()
+                # create a rectangle patch based on detected eye region
+                rect = Rectangle((eye_x, eye_y), eye_w, eye_h,
+                                 linewidth=1, edgecolor='g', facecolor='none')
+                # add the patch to the Axes
+                axes.add_patch(rect)
+                plt.show()
+            eye_region = Region(Vertex(eye_x, eye_y),
+                                Vertex(eye_x + eye_w, eye_y + eye_h))
+            if self.eye_region.is_empty():
+                self.eye_region = eye_region
+            else:
+                self.eye_region.union(eye_region)
+        return True
+
+    def get_eye_region(self) -> Tuple[str, ImageType]:
+        '''crop and return eye region, original image remains intact'''
+        if self.eye_region.is_empty():
+            logger.warning('eye region is empty, try locating it now ...')
+            if not self.locate_eye_region():
+                logger.error('no eye region is located!')
+                return None
+        d_w    = self.eye_region.width // 10
+        left   = max(0, self.eye_region.left - d_w)
+        right  = min(self.eye_region.right + d_w, self.img_region.right)
+        top    = self.eye_region.top
+        bottom = self.eye_region.bottom
+        eye_image = self._image[top:bottom, left:right, :]
+        if DEBUG:
+            plt.imshow(eye_image, cmap='gray')
+            plt.show()
+        return (self._type, eye_image)
+

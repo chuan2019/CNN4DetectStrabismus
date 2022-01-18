@@ -64,3 +64,5 @@ ImageType = NewType('ImageType', np.ndarray)
 
 ModelType = NewType('ModelType', {'name': str, 'trained': bool, 'model': Sequential})
 ModelListType = NewType('ModelListType', List[str])
+
+CLASSIFIER_EYE = '../classifiers/haarcascade_eye.xml'
