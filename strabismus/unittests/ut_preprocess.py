@@ -1,4 +1,11 @@
-"""unit testing preprocess module"""
+"""
+Project: Detecting Strabismus with Convolutional Neural Networks
+File   : ut_preprocess.py
+Purpose: unit testing preprocess data structures and methods
+Author : Chuan Zhang
+Email  : chuan.zhang2015@gmail.com
+Example: $ python -m unittest -v ut_preprocess.py
+"""
 import os
 import sys
 import unittest

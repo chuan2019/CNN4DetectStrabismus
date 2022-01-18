@@ -6,7 +6,7 @@ Author : Chuan Zhang
 Email  : chuan.zhang2015@gmail.com
 Example: $ python -m unittest -v CNN4StrabismusUTs.py
 """
-
+# pylint: skip-file
 import unittest
 
 from classifier.cnn_4_strabismus import (

@@ -19,4 +19,5 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint `find . -name \*.py -print`
+        pylint `find strabismus/detector -name \*.py -print`
+        pylint `find strabismus/unittests -name \*.py -print`

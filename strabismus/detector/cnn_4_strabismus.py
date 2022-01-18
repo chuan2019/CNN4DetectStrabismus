@@ -28,6 +28,7 @@
         3. Diagnosing a subject by classifying the input picture
            of the subject
 """
+# pylint: skip-file
 import os
 import argparse
 import logging

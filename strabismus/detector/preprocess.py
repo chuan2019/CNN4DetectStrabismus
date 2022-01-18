@@ -44,7 +44,7 @@ class Vertex:
     Vertex: class of vertices on 2D plane
     """
 
-    def __init__(self, x: int=0, y: int=0):
+    def __init__(self, x: int=0, y: int=0): # pylint: disable=invalid-name
         self._x = x
         self._y = y
 
@@ -479,4 +479,3 @@ class Image:
             plt.imshow(eye_image, cmap='gray')
             plt.show()
         return (self._type, eye_image)
-
