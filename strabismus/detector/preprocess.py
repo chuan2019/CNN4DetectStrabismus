@@ -45,6 +45,18 @@ class Vertex:
     """
 
     def __init__(self, x: int=0, y: int=0): # pylint: disable=invalid-name
+        '''
+        the vertical axis in image coordinates is pointing downwards
+        actual meaning of x and y coordinates are also different
+
+        image coordinates:      normal coordinates:      ndarray indices:
+         (0,0)  ----------> x       y ^                  [0, 0] -----------> y
+                |                     |                         | [1, 1] [1, 2]
+                |                     |                         | [2, 1] [2, 2]
+                |                     |                         | [3, 1] [3, 2]
+             y  v               (0,0) ----------> x           x v
+
+        '''
         self._x = x
         self._y = y
 
@@ -94,12 +106,13 @@ class Region:
         constructing a Region object, default: empty region
         the vertical axis in image coordinates is pointing downwards
 
-        image coordinates:                 normal coordinates:
-         (0,0)  ---------->                      ^
-                |                                |
-                |                                |
-                |                                |
-                v                          (0,0) ---------->
+        image coordinates:      normal coordinates:      ndarray indices:
+         (0,0)  ----------> x       y ^                  [0, 0] -----------> y
+                |                     |                         | [1, 1] [1, 2]
+                |                     |                         | [2, 1] [2, 2]
+                |                     |                         | [3, 1] [3, 2]
+             y  v               (0,0) ----------> x           x v
+
 
         :top_left:     top left corner
         :bottom_right: bottom right corner
@@ -128,13 +141,13 @@ class Region:
             )
         if top_left.x > bottom_right.x:
             raise ValueError(
-                f'bottom right corner: {bottom_right} is on the left of top ' +
-                f'left corner: {top_left}!'
+                f'top left corner: {top_left} is below the bottom right ' +
+                f'corner: {bottom_right}'
             )
         if top_left.y > bottom_right.y:
             raise ValueError(
-                f'top left corner: {top_left} is below the bottom right ' +
-                f'corner: {bottom_right}'
+                f'bottom right corner: {bottom_right} is on the left of top ' +
+                f'left corner: {top_left}!'
             )
         self.left   = top_left.x
         self.top    = top_left.y
@@ -390,8 +403,8 @@ class Image:
             self._type  = 'BGR'
         except Exception as err:
             raise Exception(err) from err
-        self._height, self._width, _ = self._image.shape
-        self.img_region = Region(Vertex(), Vertex(self._height, self._width))
+        self._height, self._width, _ = self._image.shape # see the top Region comment
+        self.img_region = Region(Vertex(), Vertex(self._width, self._height))
         if DEBUG:
             logger.debug('image shape: (%d, %d, %d)',
                          self._image.shape[0], self._image.shape[1], self._image.shape[2])
@@ -440,26 +453,62 @@ class Image:
         if len(eyes) < 2:
             logger.warning('%d eye is detected in %s!', len(eyes), self._file)
             return False
+        eye_regions = []
         for eye in eyes:
             eye_x, eye_y, eye_w, eye_h = eye
+            eye_region = Region(Vertex(eye_x, eye_y),
+                                Vertex(eye_x + eye_w, eye_y + eye_h))
+            # only keep the largest two eye regions
+            ignored = False
+            if len(eye_regions) == 0:
+                eye_regions.append(eye_region)
+            else:
+                if eye_region > eye_regions[0]:
+                    eye_regions.insert(0, eye_region)
+                elif len(eye_regions) == 1:
+                    eye_regions.insert(1, eye_region)
+                elif eye_region > eye_regions[1]:
+                    eye_regions[1] = eye_region
+                else:
+                    ignored = True
             if DEBUG:
-                logger.info('Eye Region detected: (%d, %d, %d, %d)',
-                             eye_x, eye_y, eye_x+eye_w, eye_y+eye_h)
+                if ignored:
+                    logger.info('Eye Region ignored: (%d, %d, %d, %d)',
+                                 eye_x, eye_y, eye_x+eye_w, eye_y+eye_h)
+                else:
+                    logger.info('Eye Region detected: (%d, %d, %d, %d)',
+                                 eye_x, eye_y, eye_x+eye_w, eye_y+eye_h)
                 plt.imshow(gry_image, cmap='gray')
                 # get current reference
                 axes = plt.gca()
                 # create a rectangle patch based on detected eye region
-                rect = Rectangle((eye_x, eye_y), eye_w, eye_h,
-                                 linewidth=1, edgecolor='g', facecolor='none')
+                if ignored:
+                    rect = Rectangle((eye_x, eye_y), eye_w, eye_h,
+                                     linewidth=2, edgecolor='r', facecolor='none')
+                else:
+                    rect = Rectangle((eye_x, eye_y), eye_w, eye_h,
+                                     linewidth=2, edgecolor='g', facecolor='none')
                 # add the patch to the Axes
                 axes.add_patch(rect)
                 plt.show()
-            eye_region = Region(Vertex(eye_x, eye_y),
-                                Vertex(eye_x + eye_w, eye_y + eye_h))
-            if self.eye_region.is_empty():
-                self.eye_region = eye_region
-            else:
-                self.eye_region.union(eye_region)
+
+        self.eye_region = eye_regions[0]
+        self.eye_region.union(eye_regions[1])
+        if DEBUG:
+            logger.info('final eye region: (%d, %d, %d, %d)',
+                        self.eye_region.left, self.eye_region.top,
+                        self.eye_region.right, self.eye_region.bottom)
+            plt.imshow(gry_image, cmap='gray')
+            # get current reference
+            axes = plt.gca()
+            # create a rectangle patch based on detected eye region
+            rect = Rectangle((self.eye_region.left, self.eye_region.top),
+                             self.eye_region.width, self.eye_region.height,
+                             linewidth=2, edgecolor='g', facecolor='none')
+            # add the patch to the Axes
+            axes.add_patch(rect)
+            plt.show()
+
         return True
 
     def get_eye_region(self) -> Tuple[str, ImageType]:
@@ -469,13 +518,24 @@ class Image:
             if not self.locate_eye_region():
                 logger.error('no eye region is located!')
                 return None
-        d_w    = self.eye_region.width // 10
-        left   = max(0, self.eye_region.left - d_w)
-        right  = min(self.eye_region.right + d_w, self.img_region.right)
+        #d_w    = self.eye_region.width // 10
+        #left   = max(0, self.eye_region.left - d_w)
+        #right  = min(self.eye_region.right + d_w, self.img_region.right)
+        left   = self.eye_region.left
+        right  = self.eye_region.right
         top    = self.eye_region.top
         bottom = self.eye_region.bottom
-        eye_image = self._image[top:bottom, left:right, :]
+        eye_image = self._image[top:bottom, left:right, :] # see the top Region comment
         if DEBUG:
-            plt.imshow(eye_image, cmap='gray')
+            logger.info('get_eye_region():\n********************************')
+            logger.info('image region: (%d, %d, %d, %d)',
+                        self.img_region.left, self.img_region.top,
+                        self.img_region.right, self.img_region.bottom)
+            logger.info('eye region: (%d, %d, %d, %d)',
+                        self.eye_region.left, self.eye_region.top,
+                        self.eye_region.right, self.eye_region.bottom)
+            logger.info('crop region: (%d, %d, %d, %d)',
+                        left, top, right, bottom)
+            plt.imshow(eye_image[:,:,0], cmap='gray')
             plt.show()
         return (self._type, eye_image)

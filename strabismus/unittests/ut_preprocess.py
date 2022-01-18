@@ -43,9 +43,11 @@ class TestSuitePreprocessing(unittest.TestCase):
 
     def setUp(self):
         self.src_image = [
-            {'file_name': 'test-data/healthy_014.jpg',
+            {'file_name': os.path.dirname(os.path.realpath(__file__)) \
+                          + '/test-data/healthy_014.jpg',
              'shape':(640, 428, 3)},
-            {'file_name': 'test-data/eso_008.jpg',
+            {'file_name': os.path.dirname(os.path.realpath(__file__)) \
+                          + '/test-data/eso_008.jpg',
              'shape': (467, 600, 3)}
         ]
 

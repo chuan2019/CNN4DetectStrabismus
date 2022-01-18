@@ -32,9 +32,16 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 #############################
 # Logging Configurations    #
 #############################
-LOGFILE_NAME = '../logs/model_' + '-'.join([str(dt.date.today().year),
+
+
+log_dir = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), '../logs/'
+)
+log_file_name = 'model_' + '-'.join([str(dt.date.today().year),
                                     str(dt.date.today().month),
                                     str(dt.date.today().day)]) + '.log'
+
+LOGFILE_NAME = log_dir + '/' + log_file_name
 
 logging.basicConfig(filename=LOGFILE_NAME,
                     #filemode='w',
