@@ -19,5 +19,5 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint `find strabismus/detector -name \*.py -print`
-        pylint `find strabismus/unittests -name \*.py -print`
+        pylint --extension-pkg-whitelist=cv2 `find strabismus/detector -name \*.py -print`
+        pylint --extension-pkg-whitelist=cv2 `find strabismus/unittests -name \*.py -print`
