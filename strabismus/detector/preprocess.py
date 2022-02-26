@@ -23,7 +23,7 @@
 
 """
 from typing import Tuple
-import os
+import os, numbers
 from functools import total_ordering
 import cv2
 import numpy as np
@@ -39,10 +39,33 @@ from detector import (
     CLASSIFIER_EYE
 )
 
+class IntegerField:
+    """
+    IntegerField: data descriptor of Integral type
+    """
+    def __set_name__(self, owner_class, name):
+        """set field name"""
+        self.field_name = name
+
+    def __set__(self, instance, value):
+        """data descriptor setter"""
+        if not isinstance(value, numbers.Integral):
+            raise TypeError(f'{self.field_name} must be integers')
+        instance.__dict__[self.field_name] = value
+
+    def __get__(self, instance, owner_class):
+        """data descriptor getter"""
+        if instance is None:
+            return self
+        return instance.__dict__.get(self.field_name, None)
+
+
 class Vertex:
     """
     Vertex: class of vertices on 2D plane
     """
+    x = IntegerField()
+    y = IntegerField()
 
     def __init__(self, x: int=0, y: int=0): # pylint: disable=invalid-name
         '''
@@ -57,41 +80,11 @@ class Vertex:
              y  v               (0,0) ----------> x           x v
 
         '''
-        self._x = x
-        self._y = y
-
-    @property
-    def x(self): # pylint: disable=invalid-name
-        '''check x value'''
-        return self._x
-
-    @property
-    def y(self): # pylint: disable=invalid-name
-        '''check y value'''
-        return self._y
-
-    @x.setter
-    def x(self, value): # pylint: disable=invalid-name
-        '''set x value'''
-        self._x = value
-
-    @y.setter
-    def y(self, value): # pylint: disable=invalid-name
-        '''set y value'''
-        self._y = value
-
-    @x.deleter
-    def x(self): # pylint: disable=invalid-name
-        '''delete variable _x'''
-        del self._x
-
-    @y.deleter
-    def y(self): # pylint: disable=invalid-name
-        '''delete variable _y'''
-        del self._y
+        self.x = x
+        self.y = y
 
     def __repr__(self):
-        return f'({self._x}, {self._y})'
+        return f'({self.x}, {self.y})'
 
 
 @total_ordering
