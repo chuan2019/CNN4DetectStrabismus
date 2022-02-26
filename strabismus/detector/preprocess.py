@@ -23,7 +23,8 @@
 
 """
 from typing import Tuple
-import os, numbers
+import os
+import numbers
 from functools import total_ordering
 import cv2
 import numpy as np
@@ -45,7 +46,7 @@ class IntegerField:
     """
     def __set_name__(self, owner_class, name):
         """set field name"""
-        self.field_name = name
+        self.field_name = name # pylint: disable=W0201
 
     def __set__(self, instance, value):
         """data descriptor setter"""
@@ -60,12 +61,12 @@ class IntegerField:
         return instance.__dict__.get(self.field_name, None)
 
 
-class Vertex:
+class Vertex: # pylint: disable=R0903
     """
     Vertex: class of vertices on 2D plane
     """
     x = IntegerField()
-    y = IntegerField()
+    y = IntegerField() 
 
     def __init__(self, x: int=0, y: int=0): # pylint: disable=invalid-name
         '''
@@ -80,8 +81,8 @@ class Vertex:
              y  v               (0,0) ----------> x           x v
 
         '''
-        self.x = x
-        self.y = y
+        self.x = x # pylint: disable=C0103
+        self.y = y # pylint: disable=C0103
 
     def __repr__(self):
         return f'({self.x}, {self.y})'
