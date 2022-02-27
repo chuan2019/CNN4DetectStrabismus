@@ -76,7 +76,7 @@ class Vertex: # pylint: disable=R0903
     Vertex: class of vertices on 2D plane
     """
     x = IntegerField()
-    y = IntegerField() 
+    y = IntegerField()
 
     def __init__(self, x: int=0, y: int=0): # pylint: disable=invalid-name
         '''
