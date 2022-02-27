@@ -48,7 +48,7 @@ class TestSuiteDataFields(unittest.TestCase):
                      max_value:numbers.Real=None):
         """creating test class at runtime"""
         obj = None
-        if field_type not in TestSuiteDataFields.FieldTypes.keys():
+        if field_type not in TestSuiteDataFields.FieldTypes:
             raise ValueError(f'field type {field_type} is not recognized.')
         obj = type(f'Test{field_type}Field', (),
                    {'x': TestSuiteDataFields.FieldTypes[field_type](min_value, max_value)})
