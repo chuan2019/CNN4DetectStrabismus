@@ -9,6 +9,7 @@ Example: $ python -m unittest -v ut_preprocess.py
 import os
 import sys
 import unittest
+import numbers
 import cv2
 
 pkg_dir = os.path.join(
@@ -23,10 +24,65 @@ from detector import (
 )
 
 from detector.preprocess import (
+    IntegerField,
     Vertex,
     Region,
     Image
 )
+
+
+class TestSuiteDataFields(unittest.TestCase):
+    """
+    Purpose: testing data descriptors
+    Data Descriptors to be tested:
+        * IntegerField
+    Features to be tested:
+        * setter
+        * getter
+    """
+    FieldTypes = {'Integer': IntegerField}
+
+    @staticmethod
+    def create_field(field_type,
+                     min_value:numbers.Real=None,
+                     max_value:numbers.Real=None):
+        """creating test class at runtime"""
+        obj = None
+        if field_type not in TestSuiteDataFields.FieldTypes.keys():
+            raise ValueError(f'field type {field_type} is not recognized.')
+        obj = type(f'Test{field_type}Field', (),
+                   {'x': TestSuiteDataFields.FieldTypes[field_type](min_value, max_value)})
+        return obj()
+
+    def test_set_field_ok(self):
+        """positive test cases for setting fields"""
+        min_value = 5
+        max_value = 10
+        int_field = self.create_field('Integer', min_value, max_value)
+        valid_values = range(min_value, max_value+1)
+        for n, value in enumerate(valid_values):  # pylint: disable=C0103
+            with self.subTest(test_number=n):
+                int_field.x = value
+                self.assertEqual(value, int_field.x)
+
+    def test_set_field_invalid(self):
+        """negative test cases for setting fields"""
+        min_value = -2
+        max_value =  3
+        int_field = self.create_field('Integer', min_value, max_value)
+        invalid_values  = list(range(min_value-5, min_value))
+        invalid_values += list(range(max_value+1, max_value+5))
+        invalid_values += [0.8, 2+1j, '1', (0,1), '-1']
+        for n, value in enumerate(invalid_values):  # pylint: disable=C0103
+            with self.subTest(test_number=n):
+                with self.assertRaises((TypeError, ValueError)):
+                    int_field.x = value
+
+    def test_field_getter(self):
+        """testing getter method of the fields"""
+        for field_type, field in self.FieldTypes.items():
+            field_class = self.create_field(field_type)
+            self.assertIsInstance(type(field_class).x, field)
 
 
 class TestSuitePreprocessing(unittest.TestCase):

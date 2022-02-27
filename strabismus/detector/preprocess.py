@@ -44,7 +44,7 @@ class IntegerField:
     """
     IntegerField: data descriptor of Integral type
     """
-    def __init__(self, min_value:numbers.Integral=0,
+    def __init__(self, min_value:numbers.Integral=None,
                        max_value:numbers.Integral=None):
         """initializing minimum and maximum values for the field"""
         self.min_value = min_value
@@ -58,7 +58,7 @@ class IntegerField:
         """data descriptor setter"""
         if not isinstance(value, numbers.Integral):
             raise TypeError(f'{self.field_name} must be integers')
-        if value < self.min_value:
+        if self.min_value is not None and value < self.min_value:
             raise ValueError(f'{self.field_name} must be at least {self.min_value}.')
         if self.max_value is not None and value > self.max_value:
             raise ValueError(f'{self.field_name} cannot be larger than {self.max_value}.')
