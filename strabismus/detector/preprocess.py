@@ -44,6 +44,12 @@ class IntegerField:
     """
     IntegerField: data descriptor of Integral type
     """
+    def __init__(self, min_value:numbers.Integral=0,
+                       max_value:numbers.Integral=None):
+        """initializing minimum and maximum values for the field"""
+        self.min_value = min_value
+        self.max_value = max_value
+
     def __set_name__(self, owner_class, name):
         """set field name"""
         self.field_name = name # pylint: disable=W0201
@@ -52,6 +58,10 @@ class IntegerField:
         """data descriptor setter"""
         if not isinstance(value, numbers.Integral):
             raise TypeError(f'{self.field_name} must be integers')
+        if value < self.min_value:
+            raise ValueError(f'{self.field_name} must be at least {self.min_value}.')
+        if self.max_value is not None and value > self.max_value:
+            raise ValueError(f'{self.field_name} cannot be larger than {self.max_value}.')
         instance.__dict__[self.field_name] = value
 
     def __get__(self, instance, owner_class):
