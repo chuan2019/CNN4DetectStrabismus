@@ -30,7 +30,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-from detector import (
+from strabismus import (
     DEFAULT_WIDTH,
     DEFAULT_HEIGHT,
     DEBUG,
