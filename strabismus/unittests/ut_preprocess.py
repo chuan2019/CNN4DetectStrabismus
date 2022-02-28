@@ -18,12 +18,12 @@ pkg_dir = os.path.join(
 sys.path.insert(0, pkg_dir)
 
 # pylint: disable=import-error,wrong-import-position
-from detector import (
+from strabismus import (
     DEFAULT_HEIGHT,
     DEFAULT_WIDTH
 )
 
-from detector.preprocess import (
+from strabismus.preprocess import (
     IntegerField,
     Vertex,
     Region,
